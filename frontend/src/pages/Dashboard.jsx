@@ -4,6 +4,7 @@ import {
   Activity,
   BarChart3,
   CheckCircle2,
+  Cloud,
   ClipboardPaste,
   Clock,
   Film,
@@ -34,7 +35,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { api } from '@/api/client';
 import { syncDashboardHeader } from '@/lib/syncDashboardHeader';
@@ -52,6 +53,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -197,6 +199,7 @@ function ContributionHeatmap({ heatmap, t }) {
 
 export default function DashboardPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [url, setUrl] = useState('');
   const [format, setFormat] = useState('mp4');
   const [quality, setQuality] = useState('best');
@@ -210,10 +213,12 @@ export default function DashboardPage() {
   const [recent, setRecent] = useState([]);
   const [wsIds, setWsIds] = useState([]);
   const [uploadToGdrive, setUploadToGdrive] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const activeJobs = useDownloadStore((s) => s.activeJobs);
   const upsertJob = useDownloadStore((s) => s.upsertJob);
   const updateJob = useDownloadStore((s) => s.updateJobProgress);
   const user = useAuthStore((s) => s.user);
+  const setUser = useAuthStore((s) => s.setUser);
 
   const refresh = useCallback(async () => {
     try {
@@ -332,6 +337,7 @@ export default function DashboardPage() {
     };
     const effectiveFormat = level === 'none' ? defaults.format : format;
     const effectiveQuality = level === 'none' ? defaults.quality : quality;
+    setIsSubmitting(true);
     try {
       const { data } = await api.post('/downloads/', {
         source_url: trimmed,
@@ -359,6 +365,8 @@ export default function DashboardPage() {
       toast.error(
         err.response?.data?.detail || t('dashboard.toast.startFailed'),
       );
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -565,7 +573,7 @@ export default function DashboardPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    className="min-h-11 flex-1 sm:flex-initial"
+                    className="min-h-11 flex-1 sm:flex-initial cursor-pointer"
                     onClick={async () => {
                       try {
                         const text = await navigator.clipboard.readText();
@@ -580,10 +588,14 @@ export default function DashboardPage() {
                   </Button>
                   <Button
                     type="submit"
-                    className="min-h-11 min-w-[8.5rem] gap-2"
-                    disabled={!trimmedUrl}
+                    className="min-h-11 min-w-[8.5rem] gap-2 cursor-pointer"
+                    disabled={!trimmedUrl || analyzeLoading || !analyzeMeta?.ok || isSubmitting}
                   >
-                    <Send className="size-4 shrink-0" />
+                    {isSubmitting ? (
+                      <Loader2 className="size-4 shrink-0 animate-spin" />
+                    ) : (
+                      <Send className="size-4 shrink-0" />
+                    )}
                     {t('dashboard.newDownload.download')}
                   </Button>
                 </div>
@@ -741,14 +753,14 @@ export default function DashboardPage() {
                         <p className="mt-1.5 text-sm text-muted-foreground">{t('settings.gdriveAutoUploadHint') || 'Upload all completed downloads automatically.'}</p>
                       </div>
                     </div>
-                    <Switch
-                      className="shrink-0"
-                      checked={user?.preferences?.auto_upload_google_drive || false}
-                      onCheckedChange={(v) => {
-                        api.patch('/auth/preferences/', { auto_upload_google_drive: v });
-                        setUser(prev => ({ ...prev, preferences: { ...prev.preferences, auto_upload_google_drive: v } }));
-                      }}
-                    />
+                     <Switch
+                       className="shrink-0"
+                       checked={user?.preferences?.auto_upload_google_drive || false}
+                       onCheckedChange={(v) => {
+                         api.patch('/auth/preferences/', { auto_upload_google_drive: v });
+                         setUser({ preferences: { ...(user?.preferences || {}), auto_upload_google_drive: v } });
+                       }}
+                     />
                   </div>
                 </div>
                 <div className="space-y-3">
@@ -786,7 +798,10 @@ export default function DashboardPage() {
       </Card>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Card className="overflow-hidden border-s-4 border-s-primary">
+        <Card
+          className="cursor-pointer overflow-hidden border-s-4 border-s-primary transition-all hover:ring-2 hover:ring-primary/20"
+          onClick={() => navigate('/downloads')}
+        >
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between gap-2">
               <CardDescription>
@@ -815,7 +830,10 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="overflow-hidden border-s-4 border-s-violet-500">
+        <Card
+          className="cursor-pointer overflow-hidden border-s-4 border-s-violet-500 transition-all hover:ring-2 hover:ring-violet-500/20"
+          onClick={() => navigate('/queue')}
+        >
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between gap-2">
               <CardDescription>
@@ -839,7 +857,10 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="overflow-hidden border-s-4 border-s-emerald-500">
+        <Card
+          className="cursor-pointer overflow-hidden border-s-4 border-s-emerald-500 transition-all hover:ring-2 hover:ring-emerald-500/20"
+          onClick={() => navigate('/downloads?filter=finished')}
+        >
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between gap-2">
               <CardDescription>
@@ -861,7 +882,10 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="overflow-hidden border-s-4 border-s-sky-500">
+        <Card
+          className="cursor-pointer overflow-hidden border-s-4 border-s-sky-500 transition-all hover:ring-2 hover:ring-sky-500/20"
+          onClick={() => navigate('/settings')}
+        >
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between gap-2">
               <CardDescription>
@@ -885,7 +909,10 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Card>
+        <Card
+          className="cursor-pointer transition-all hover:ring-2 hover:ring-primary/20"
+          onClick={() => navigate('/downloads')}
+        >
           <CardHeader className="pb-2">
             <CardDescription>
               {t('dashboard.health.successTitle')}
@@ -923,7 +950,10 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card
+          className="cursor-pointer transition-all hover:ring-2 hover:ring-amber-500/20"
+          onClick={() => navigate('/storage')}
+        >
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between gap-2">
               <CardDescription>
@@ -1040,7 +1070,10 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
+        <Card
+          className="lg:col-span-2 cursor-pointer transition-all hover:ring-2 hover:ring-primary/20"
+          onClick={() => navigate('/history')}
+        >
           <CardHeader>
             <div className="flex items-start gap-3">
               <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted">
@@ -1059,7 +1092,10 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card
+          className="cursor-pointer transition-all hover:ring-2 hover:ring-primary/20"
+          onClick={() => navigate('/storage')}
+        >
           <CardHeader>
             <div className="flex items-start gap-3">
               <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted">
@@ -1144,7 +1180,10 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      <Card>
+      <Card
+        className="cursor-pointer transition-all hover:ring-2 hover:ring-primary/20"
+        onClick={() => navigate('/downloads')}
+      >
         <CardHeader>
           <div className="flex items-start gap-3">
             <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted">
@@ -1274,7 +1313,10 @@ export default function DashboardPage() {
       </Card>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
+        <Card
+          className="cursor-pointer transition-all hover:ring-2 hover:ring-primary/20"
+          onClick={() => navigate('/history')}
+        >
           <CardHeader>
             <div className="flex items-start gap-3">
               <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted">
@@ -1300,25 +1342,29 @@ export default function DashboardPage() {
                 </TableRow>
               </TableHeader>
                <TableBody>
-                 {recent.length > 0 ? (
-                   recent.map((j) => (
-                     <TableRow key={j.id}>
-                       <TableCell className="max-w-[200px] truncate">
-                         {j.title || j.source_url || j.url}
-                       </TableCell>
-                       <TableCell>
-                         <Badge variant="outline">{j.platform}</Badge>
-                       </TableCell>
-                       <TableCell>{formatBytes(j.file_size)}</TableCell>
-                       <TableCell>
-                         <Badge>{j.status}</Badge>
-                       </TableCell>
-                       <TableCell>
-                         {j.sent_to_telegram
-                           ? t('dashboard.recent.yes')
-                           : t('dashboard.recent.no')}
-                       </TableCell>
-                     </TableRow>
+                  {recent.length > 0 ? (
+                    recent.map((j) => (
+                      <TableRow
+                        key={j.id}
+                        className="cursor-pointer"
+                        onClick={() => navigate(`/jobs/${j.id}`)}
+                      >
+                        <TableCell className="max-w-[200px] truncate">
+                          {j.title || j.source_url || j.url}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{j.platform}</Badge>
+                        </TableCell>
+                        <TableCell>{formatBytes(j.file_size)}</TableCell>
+                        <TableCell>
+                          <Badge>{j.status}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          {j.sent_to_telegram
+                            ? t('dashboard.recent.yes')
+                            : t('dashboard.recent.no')}
+                        </TableCell>
+                      </TableRow>
                    ))
                  ) : (
                    <TableRow>
@@ -1335,7 +1381,10 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card
+          className="cursor-pointer transition-all hover:ring-2 hover:ring-primary/20"
+          onClick={() => navigate('/storage')}
+        >
           <CardHeader>
             <div className="flex items-start gap-3">
               <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted">

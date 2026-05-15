@@ -17,11 +17,14 @@
       "documents": "Documents",
       "media": "Music/Video",
       "programs": "Programs"
-    },
-    "automation": {
-      "grabber": "Grabber",
-      "sites": "Sites Manager"
-    },
+  },
+  "category": "Category",
+  "code": "Code",
+  "filter": "Filter",
+  "automation": {
+    "grabber": "Grabber",
+    "sites": "Sites Manager"
+  },
     "grabber": {
       "pageDescription": "Search and grab media from websites",
       "cardTitle": "Media Grabber",
@@ -45,7 +48,10 @@
       "settings": "Settings"
     },
     "table": {
-      "noRecords": "No records to show"
+      "noRecords": "No records to show",
+      "search": "Search",
+      "searchPlaceholder": "Search all columns…",
+      "loading": "Loading…"
     },
     "toggleSidebar": "Toggle sidebar",
     "theme": "Theme",
@@ -343,7 +349,20 @@
     "confirmPasswordPlaceholder": "Repeat new password",
     "changePassword": "Change password",
     "retentionLabel": "Auto-delete files after (days)",
-    "retentionDescription": "Completed downloads older than this are removed from disk only; history rows stay. Use 0 to keep files until you delete them."
+    "retentionDescription": "Completed downloads older than this are removed from disk only; history rows stay. Use 0 to keep files until you delete them.",
+    "connectGoogleDrive": "Connect Google Drive",
+    "gdriveAutoUpload": "Auto-upload",
+    "gdriveAutoUploadHint": "Upload all completed downloads automatically.",
+    "gdriveCardDescription": "Google Drive",
+    "gdriveCardTitle": "Google Drive",
+    "gdriveEnabled": "Enabled",
+    "gdriveEnabledHint": "Allow Google Drive actions from this app.",
+    "gdriveFolderId": "Folder ID",
+    "gdriveFolderIdPlaceholder": "Enter Google Drive folder ID",
+    "saveGoogleDrive": "Save Google Drive",
+    "telegramNotifyOnFailure": "Notify on failure",
+    "telegramNotifyOnFailureHint": "Send a notification to Telegram when a download fails.",
+    "testGoogleDrive": "Test Google Drive"
   },
   "auth": {
     "signInTitle": "Sign in",

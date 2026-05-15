@@ -68,6 +68,19 @@ class PlaylistMinimalSerializer(serializers.ModelSerializer):
         fields = ("id", "title", "status", "source_url", "platform")
 
 
+CATEGORY_MAP = {
+    'compressed': ['archive'],
+    'documents': ['document'],
+    'media': ['video', 'audio'],
+    'programs': [],
+}
+
+MEDIA_KIND_TO_CATEGORY = {}
+for cat, kinds in CATEGORY_MAP.items():
+    for k in kinds:
+        MEDIA_KIND_TO_CATEGORY[k] = cat
+
+
 class DownloadJobSerializer(serializers.ModelSerializer):
     metrics = DownloadJobMetricsSerializer(read_only=True)
     files = DownloadedFileSerializer(many=True, read_only=True)
@@ -82,6 +95,7 @@ class DownloadJobSerializer(serializers.ModelSerializer):
     sent_to_telegram = serializers.SerializerMethodField()
     playlist_parent = serializers.SerializerMethodField()
     upload_to_google_drive = serializers.BooleanField(read_only=True)
+    category = serializers.SerializerMethodField()
 
     class Meta:
         model = DownloadJob
@@ -98,6 +112,7 @@ class DownloadJobSerializer(serializers.ModelSerializer):
             "format",
             "quality",
             "media_kind",
+            "category",
             "error_message",
             "retry_count",
             "max_retries",
@@ -159,6 +174,9 @@ class DownloadJobSerializer(serializers.ModelSerializer):
 
     def get_upload_to_google_drive(self, obj: DownloadJob) -> bool:
         return obj.upload_to_google_drive
+
+    def get_category(self, obj: DownloadJob):
+        return MEDIA_KIND_TO_CATEGORY.get(obj.media_kind)
 
     def get_playlist_parent(self, obj: DownloadJob):
         if obj.playlist_id:

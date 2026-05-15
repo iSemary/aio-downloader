@@ -17,11 +17,14 @@
       "documents": "Dokumente",
       "media": "Musik/Video",
       "programs": "Programme"
-    },
-    "automation": {
-      "grabber": "Grabber",
-      "sites": "Seiten-Manager"
-    },
+  },
+  "category": "Kategorie",
+  "code": "Code",
+  "filter": "Filter",
+  "automation": {
+    "grabber": "Grabber",
+    "sites": "Seiten-Manager"
+  },
     "grabber": {
       "pageDescription": "Medien von Websites suchen und abrufen",
       "cardTitle": "Medien-Grabber",
@@ -45,7 +48,10 @@
       "settings": "Einstellungen"
     },
     "table": {
-      "noRecords": "Keine Einträge vorhanden"
+      "noRecords": "Keine Einträge vorhanden",
+      "search": "Suchen",
+      "searchPlaceholder": "Alle Spalten durchsuchen…",
+      "loading": "Laden…"
     },
     "toggleSidebar": "Seitenleiste umschalten",
     "theme": "Design",
@@ -306,7 +312,7 @@
     "colSize": "Größe",
     "colActions": "Aktionen"
   },
-  "settings": {
+    "settings": {
     "pageTitle": "Einstellungen",
     "pageDescription": "Konto und Integrationen.",
     "loadFailed": "Einstellungen konnten nicht geladen werden",
@@ -343,7 +349,20 @@
     "confirmPasswordPlaceholder": "Neues Passwort wiederholen",
     "changePassword": "Passwort ändern",
     "retentionLabel": "Dateien automatisch löschen nach (Tagen)",
-    "retentionDescription": "Abgeschlossene Downloads, die älter sind, werden nur von der Festplatte entfernt; Verlaufseinträge bleiben. 0 behält Dateien, bis Sie sie löschen."
+    "retentionDescription": "Abgeschlossene Downloads, die älter sind, werden nur von der Festplatte entfernt; Verlaufseinträge bleiben. 0 behält Dateien, bis Sie sie löschen.",
+    "connectGoogleDrive": "Google Drive verbinden",
+    "gdriveAutoUpload": "Auto-Upload",
+    "gdriveAutoUploadHint": "Alle abgeschlossenen Downloads automatisch hochladen.",
+    "gdriveCardDescription": "Google Drive",
+    "gdriveCardTitle": "Google Drive",
+    "gdriveEnabled": "Aktiviert",
+    "gdriveEnabledHint": "Ermögliche Google Drive Aktionen in dieser App.",
+    "gdriveFolderId": "Ordner-ID",
+    "gdriveFolderIdPlaceholder": "Google Drive Ordner-ID eingeben",
+    "saveGoogleDrive": "Google Drive speichern",
+    "telegramNotifyOnFailure": "Bei Fehler benachrichtigen",
+    "telegramNotifyOnFailureHint": "Bei fehlgeschlagenen Downloads eine Telegram-Benachrichtigung senden.",
+    "testGoogleDrive": "Google Drive testen"
   },
   "auth": {
     "signInTitle": "Anmelden",

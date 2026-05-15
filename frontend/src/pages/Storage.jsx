@@ -1,31 +1,92 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Database, HardDrive, Inbox, RefreshCw, Send, Trash2 } from 'lucide-react'
+import { Database, HardDrive, RefreshCw, Send, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { api } from '@/api/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { DataTable } from '@/components/ui/data-table'
 import { formatBytes } from '@/lib/formatBytes'
 
 export default function StoragePage() {
   const { t } = useTranslation()
-  const [files, setFiles] = useState([])
   const [stats, setStats] = useState(null)
+  const tableRef = useRef(null)
 
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
-      const [l, s] = await Promise.all([api.get('/storage/'), api.get('/storage/stats/')])
-      setFiles(l.data)
+      const s = await api.get('/storage/stats/')
       setStats(s.data)
     } catch {
       toast.error(t('storage.loadFailed'))
     }
-  }
+  }, [t])
 
   useEffect(() => {
     load()
-  }, [])
+  }, [load])
+
+  const fetchData = (params) => api.get('/storage/', { params })
+
+  const columns = useMemo(() => [
+    {
+      accessorKey: 'path',
+      header: t('storage.colPath'),
+      cell: (info) => (
+        <span className="max-w-[min(28rem,70vw)] truncate font-mono text-xs">{info.getValue()}</span>
+      ),
+    },
+    {
+      accessorKey: 'size',
+      header: t('storage.colSize'),
+      cell: (info) => <span className="whitespace-nowrap tabular-nums">{formatBytes(info.getValue())}</span>,
+    },
+    {
+      id: 'actions',
+      header: t('storage.colActions'),
+      meta: { disableSorting: true },
+      cell: ({ row }) => (
+        <div className="flex flex-col items-stretch justify-end gap-2 sm:flex-row sm:items-center sm:justify-end">
+          {row.original.job_id ? (
+            <Button
+              size="sm"
+              variant="secondary"
+              className="min-h-9 gap-1.5"
+              onClick={async () => {
+                try {
+                  await api.post(`/integrations/telegram/push/${row.original.job_id}/`)
+                  toast.success('Sent to Telegram')
+                } catch (e) {
+                  toast.error(e.response?.data?.detail || 'Telegram failed')
+                }
+              }}
+            >
+              <Send className="size-3.5 shrink-0" aria-hidden />
+              <span className="hidden sm:inline">{t('dashboard.active.telegram')}</span>
+            </Button>
+          ) : null}
+          <Button
+            size="sm"
+            variant="destructive"
+            className="min-h-9 gap-1.5"
+            onClick={async () => {
+              try {
+                await api.delete(`/storage/${encodeURIComponent(row.original.path)}/`)
+                toast.success('Deleted')
+                tableRef.current?.refresh()
+                load()
+              } catch {
+                toast.error('Delete failed')
+              }
+            }}
+          >
+            <Trash2 className="size-3.5 shrink-0" aria-hidden />
+            <span className="hidden sm:inline">{t('history.delete')}</span>
+          </Button>
+        </div>
+      ),
+    },
+  ], [t])
 
   return (
     <div className="flex w-full min-w-0 flex-col gap-6">
@@ -94,75 +155,13 @@ export default function StoragePage() {
           </Button>
         </CardHeader>
         <CardContent className="pt-6">
-          <div className="-mx-1 overflow-x-auto rounded-lg border sm:mx-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="min-w-48">{t('storage.colPath')}</TableHead>
-                  <TableHead className="whitespace-nowrap">{t('storage.colSize')}</TableHead>
-                  <TableHead className="min-w-40 text-end">{t('storage.colActions')}</TableHead>
-                </TableRow>
-              </TableHeader>
-               <TableBody>
-                 {files.length > 0 ? (
-                   files.map((f) => (
-                     <TableRow key={f.path}>
-                       <TableCell className="max-w-[min(28rem,70vw)] truncate font-mono text-xs">{f.path}</TableCell>
-                       <TableCell className="whitespace-nowrap tabular-nums">{formatBytes(f.size)}</TableCell>
-                       <TableCell className="text-end">
-                         <div className="flex flex-col items-stretch justify-end gap-2 sm:flex-row sm:items-center sm:justify-end">
-                           {f.job_id ? (
-                             <Button
-                               size="sm"
-                               variant="secondary"
-                               className="min-h-9 gap-1.5"
-                               onClick={async () => {
-                                 try {
-                                   await api.post(`/integrations/telegram/push/${f.job_id}/`)
-                                   toast.success('Sent to Telegram')
-                                 } catch (e) {
-                                   toast.error(e.response?.data?.detail || 'Telegram failed')
-                                 }
-                               }}
-                             >
-                               <Send className="size-3.5 shrink-0" aria-hidden />
-                               <span className="hidden sm:inline">{t('dashboard.active.telegram')}</span>
-                             </Button>
-                           ) : null}
-                           <Button
-                             size="sm"
-                             variant="destructive"
-                             className="min-h-9 gap-1.5"
-                             onClick={async () => {
-                               try {
-                                 await api.delete(`/storage/${encodeURIComponent(f.path)}/`)
-                                 toast.success('Deleted')
-                                 load()
-                               } catch {
-                                 toast.error('Delete failed')
-                               }
-                             }}
-                           >
-                             <Trash2 className="size-3.5 shrink-0" aria-hidden />
-                             <span className="hidden sm:inline">{t('history.delete')}</span>
-                           </Button>
-                         </div>
-                       </TableCell>
-                     </TableRow>
-                   ))
-                 ) : (
-                   <TableRow>
-                     <TableCell colSpan={999} className="p-4 text-center text-muted-foreground">
-                       <div className="flex flex-col items-center justify-center py-8">
-                         <Inbox className="h-8 w-8 text-muted-foreground mb-3" aria-hidden />
-                         <p className="text-sm">{t('table.noRecords')}</p>
-                       </div>
-                     </TableCell>
-                   </TableRow>
-                 )}
-               </TableBody>
-            </Table>
-          </div>
+          <DataTable
+            ref={tableRef}
+            columns={columns}
+            fetchData={fetchData}
+            searchPlaceholder={t('table.searchPlaceholder')}
+            pageSize={15}
+          />
         </CardContent>
       </Card>
     </div>

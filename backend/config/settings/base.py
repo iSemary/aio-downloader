@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     "apps.downloader",
     "apps.storage_manager",
     "apps.integrations",
+    "apps.grabber",
 ]
 
 MIDDLEWARE = [
@@ -116,6 +117,14 @@ CELERY_BEAT_SCHEDULE = {
     "cleanup-expired-download-files-daily": {
         "task": "apps.downloader.tasks.cleanup_expired_download_files",
         "schedule": crontab(hour=4, minute=17),
+    },
+    "cleanup-stale-crawls-hourly": {
+        "task": "apps.grabber.tasks.cleanup_stale_crawls",
+        "schedule": crontab(minute=0),
+    },
+    "cleanup-expired-grabber-files-daily": {
+        "task": "apps.grabber.tasks.cleanup_expired_grabber_files",
+        "schedule": crontab(hour=4, minute=47),
     },
 }
 

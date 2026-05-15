@@ -17,11 +17,14 @@
       "documents": "مستندات",
       "media": "موسيقى/فيديو",
       "programs": "برامج"
-    },
-    "automation": {
-      "grabber": "الماسك",
-      "sites": "إدارة المواقع"
-    },
+  },
+  "category": "الفئة",
+  "code": "الرمز",
+  "filter": "مرشح",
+  "automation": {
+    "grabber": "الماسك",
+    "sites": "إدارة المواقع"
+  },
     "grabber": {
       "pageDescription": "البحث وجلب الوسائط من المواقع",
       "cardTitle": "جارٍ الوسائط",
@@ -45,7 +48,10 @@
       "settings": "الإعدادات"
     },
     "table": {
-      "noRecords": "لا توجد سجلات للعرض"
+      "noRecords": "لا توجد سجلات للعرض",
+      "search": "بحث",
+      "searchPlaceholder": "البحث في جميع الأعمدة…",
+      "loading": "جارٍ التحميل…"
     },
     "toggleSidebar": "طي/إظهار الشريط الجانبي",
     "theme": "المظهر",
@@ -306,7 +312,7 @@
     "colSize": "الحجم",
     "colActions": "إجراءات"
   },
-  "settings": {
+    "settings": {
     "pageTitle": "الإعدادات",
     "pageDescription": "الحساب والتكاملات.",
     "loadFailed": "تعذّر تحميل الإعدادات",
@@ -343,7 +349,20 @@
     "confirmPasswordPlaceholder": "أعد إدخال كلمة المرور",
     "changePassword": "تغيير كلمة المرور",
     "retentionLabel": "حذف الملفات تلقائياً بعد (أيام)",
-    "retentionDescription": "تُزال التنزيلات المكتملة الأقدم من القرص فقط؛ تبقى سجلات السجل. استخدم 0 للاحتفاظ بالملفات حتى تحذفها يدوياً."
+    "retentionDescription": "تُزال التنزيلات المكتملة الأقدم من القرص فقط؛ تبقى سجلات السجل. استخدم 0 للاحتفاظ بالملفات حتى تحذفها يدوياً.",
+    "connectGoogleDrive": "الاتصال بـ Google Drive",
+    "gdriveAutoUpload": "الرفع التلقائي",
+    "gdriveAutoUploadHint": "رفع جميع التنزيلات المكتملة تلقائياً.",
+    "gdriveCardDescription": "Google Drive",
+    "gdriveCardTitle": "Google Drive",
+    "gdriveEnabled": "مفعّل",
+    "gdriveEnabledHint": "السماح بإجراءات Google Drive من هذا التطبيق.",
+    "gdriveFolderId": "معرف المجلد",
+    "gdriveFolderIdPlaceholder": "أدخل معرف مجلد Google Drive",
+    "saveGoogleDrive": "حفظ Google Drive",
+    "telegramNotifyOnFailure": "إخطار عند الفشل",
+    "telegramNotifyOnFailureHint": "إرسال إخطار إلى تيليجرام عند فشل التنزيل.",
+    "testGoogleDrive": "اختبار Google Drive"
   },
   "auth": {
     "signInTitle": "تسجيل الدخول",

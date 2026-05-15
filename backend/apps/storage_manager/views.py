@@ -25,15 +25,25 @@ def _safe_relative_path(filename: str) -> Path | None:
 class StorageListView(APIView):
     def get(self, request):
         user = request.user
+        page_size = int(request.query_params.get("page_size", 15))
+        page = int(request.query_params.get("page", 1))
+        search = request.query_params.get("search", "").strip().lower()
+        ordering = request.query_params.get("ordering", "path")
+
         root: Path = settings.MEDIA_ROOT
         root.mkdir(parents=True, exist_ok=True)
-        rel_paths = (
-            DownloadedFile.objects.filter(user=user, is_deleted=False)
-            .values_list("file_path", flat=True)
-            .distinct()
+
+        db_qs = DownloadedFile.objects.filter(user=user, is_deleted=False)
+
+        if search:
+            db_qs = db_qs.filter(file_path__icontains=search)
+
+        all_paths = list(
+            db_qs.values_list("file_path", flat=True).distinct()
         )
+
         items = []
-        for rel in rel_paths:
+        for rel in all_paths:
             fp = root / rel
             if not fp.is_file():
                 continue
@@ -51,8 +61,18 @@ class StorageListView(APIView):
                     "job_id": str(dfile.job_id) if dfile else None,
                 }
             )
-        items.sort(key=lambda x: x["path"])
-        return Response(items)
+
+        reverse = ordering.startswith("-")
+        sort_key = ordering.lstrip("-")
+        if sort_key == "size":
+            items.sort(key=lambda x: x["size"], reverse=reverse)
+        else:
+            items.sort(key=lambda x: x.get(sort_key, ""), reverse=reverse)
+
+        count = len(items)
+        start = (page - 1) * page_size
+        end = start + page_size
+        return Response({"results": items[start:end], "count": count, "page_size": page_size})
 
 
 class StorageStatsView(APIView):

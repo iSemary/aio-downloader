@@ -10,6 +10,7 @@ class DownloadJobUploadToGDriveTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(
             email="upload@test.example",
+            username="upload@test.example",
             password="secret12345",
         )
 

@@ -7,4 +7,5 @@ urlpatterns = [
     path("api/downloads/", include("apps.downloader.urls")),
     path("api/storage/", include("apps.storage_manager.urls")),
     path("api/integrations/", include("apps.integrations.urls")),
+    path("api/grabber/", include("apps.grabber.urls")),
 ]

@@ -5,7 +5,7 @@ from pathlib import Path
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Count, Exists, Max, OuterRef, Q, Sum
-from django.db.models.functions import Coalesce, TruncDate
+from django.db.models.functions import Coalesce, TruncDate, Lower
 from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -24,6 +24,7 @@ from apps.downloader.models import (
 )
 from apps.downloader.pagination import OptionalPageSizePagination
 from apps.downloader.serializers import (
+    CATEGORY_MAP,
     DownloadBulkSerializer,
     DownloadJobCreateSerializer,
     DownloadJobSerializer,
@@ -83,6 +84,32 @@ class DownloadJobViewSet(viewsets.ModelViewSet):
         roots_only = self.request.query_params.get("roots_only")
         if roots_only and str(roots_only).lower() in ("1", "true", "yes"):
             qs = qs.filter(playlist__isnull=True)
+
+        category = self.request.query_params.get("category")
+        if category:
+            media_kinds = CATEGORY_MAP.get(category)
+            if media_kinds:
+                qs = qs.filter(media_kind__in=media_kinds)
+            else:
+                qs = qs.none()
+
+        search = self.request.query_params.get("search")
+        if search:
+            q = search.strip()
+            qs = qs.filter(
+                Q(title__icontains=q)
+                | Q(source_url__icontains=q)
+                | Q(platform__icontains=q)
+                | Q(status__icontains=q)
+                | Q(format__icontains=q)
+                | Q(media_kind__icontains=q)
+                | Q(quality__icontains=q)
+                | Q(error_message__icontains=q)
+            )
+
+        ordering = self.request.query_params.get("ordering")
+        if ordering:
+            return qs.order_by(ordering)
 
         sort = self.request.query_params.get("sort", "recent")
         if sort == "queue":
@@ -389,7 +416,22 @@ class PlaylistViewSet(viewsets.ReadOnlyModelViewSet):
     pagination_class = OptionalPageSizePagination
 
     def get_queryset(self):
-        return Playlist.objects.filter(user=self.request.user).order_by("-created_at")
+        qs = Playlist.objects.filter(user=self.request.user)
+
+        search = self.request.query_params.get("search")
+        if search:
+            q = search.strip()
+            qs = qs.filter(
+                Q(title__icontains=q)
+                | Q(source_url__icontains=q)
+                | Q(platform__icontains=q)
+                | Q(status__icontains=q)
+            )
+
+        ordering = self.request.query_params.get("ordering")
+        if ordering:
+            return qs.order_by(ordering)
+        return qs.order_by("-created_at")
 
 
 class DownloadedFileViewSet(viewsets.ReadOnlyModelViewSet):
@@ -404,6 +446,20 @@ class DownloadedFileViewSet(viewsets.ReadOnlyModelViewSet):
         job_id = self.request.query_params.get("job")
         if job_id:
             qs = qs.filter(job_id=job_id)
+
+        search = self.request.query_params.get("search")
+        if search:
+            q = search.strip()
+            qs = qs.filter(
+                Q(file_path__icontains=q)
+                | Q(job__title__icontains=q)
+                | Q(job__source_url__icontains=q)
+                | Q(job__platform__icontains=q)
+            )
+
+        ordering = self.request.query_params.get("ordering")
+        if ordering:
+            return qs.order_by(ordering)
         return qs.select_related("job").order_by("-created_at")
 
 

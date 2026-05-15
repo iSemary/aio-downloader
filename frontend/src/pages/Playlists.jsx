@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { Library, Loader2 } from 'lucide-react'
@@ -7,7 +7,7 @@ import { api } from '@/api/client'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { DataTable } from '@/components/ui/data-table'
 import { formatBytes } from '@/lib/formatBytes'
 
 export default function PlaylistsPage() {
@@ -65,6 +65,34 @@ export default function PlaylistsPage() {
 
   const selected = parents.find((p) => p.id === selectedId) || null
 
+  const childColumns = useMemo(() => [
+    {
+      accessorKey: 'title',
+      header: t('dashboard.recent.colTitle'),
+      cell: (info) => info.getValue() || info.row.original.source_url || info.row.original.url || '—',
+    },
+    {
+      accessorKey: 'file_size',
+      header: t('dashboard.recent.colSize'),
+      cell: (info) => formatBytes(info.getValue() || 0),
+    },
+    {
+      accessorKey: 'status',
+      header: t('dashboard.recent.colStatus'),
+      cell: (info) => <Badge variant="secondary">{info.getValue()}</Badge>,
+    },
+    {
+      id: 'actions',
+      header: '',
+      meta: { disableSorting: true },
+      cell: ({ row }) => (
+        <Button variant="ghost" size="sm" asChild>
+          <Link to={`/jobs/${row.original.id}`}>{t('playlists.details')}</Link>
+        </Button>
+      ),
+    },
+  ], [t])
+
   return (
     <div className="flex w-full min-w-0 flex-col gap-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-5">
@@ -95,46 +123,29 @@ export default function PlaylistsPage() {
             ) : parents.length === 0 ? (
               <p className="text-sm text-muted-foreground">{t('playlists.emptyParents')}</p>
             ) : (
-              <div className="-mx-1 max-h-[420px] overflow-auto rounded-lg border sm:mx-0">
-                 <Table>
-                   <TableHeader>
-                     <TableRow>
-                       <TableHead>{t('dashboard.recent.colTitle')}</TableHead>
-                       <TableHead>{t('playlists.childrenTitle')}</TableHead>
-                       <TableHead>{t('dashboard.recent.colStatus')}</TableHead>
-                     </TableRow>
-                   </TableHeader>
-                   <TableBody>
-                     {parents.length > 0 ? (
-                       parents.map((p) => (
-                         <TableRow
-                           key={p.id}
-                           className={selectedId === p.id ? 'bg-muted/60' : 'cursor-pointer'}
-                           onClick={() => setSelectedId(p.id)}
-                         >
-                           <TableCell className="max-w-[200px] truncate font-medium">
-                             {p.title || p.source_url}
-                           </TableCell>
-                           <TableCell className="text-muted-foreground tabular-nums">
-                             {p.total_count ?? p.job_count ?? 0}
-                           </TableCell>
-                           <TableCell>
-                             <Badge variant="secondary">{p.status}</Badge>
-                           </TableCell>
-                         </TableRow>
-                       ))
-                     ) : (
-                       <TableRow>
-                         <TableCell colSpan={999} className="p-4 text-center text-muted-foreground">
-                           <div className="flex flex-col items-center justify-center py-8">
-                             <Inbox className="h-8 w-8 text-muted-foreground mb-3" aria-hidden />
-                             <p className="text-sm">{t('table.noRecords')}</p>
-                           </div>
-                         </TableCell>
-                       </TableRow>
-                     )}
-                   </TableBody>
-                 </Table>
+              <div className="max-h-[420px] overflow-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="h-10 px-2 text-left align-middle font-medium">{t('dashboard.recent.colTitle')}</th>
+                      <th className="h-10 px-2 text-left align-middle font-medium">{t('playlists.childrenTitle')}</th>
+                      <th className="h-10 px-2 text-left align-middle font-medium">{t('dashboard.recent.colStatus')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {parents.map((p) => (
+                      <tr
+                        key={p.id}
+                        className={`border-b transition-colors hover:bg-muted/50 cursor-pointer ${selectedId === p.id ? 'bg-muted/60' : ''}`}
+                        onClick={() => setSelectedId(p.id)}
+                      >
+                        <td className="max-w-[200px] truncate p-2 align-middle font-medium">{p.title || p.source_url}</td>
+                        <td className="p-2 align-middle text-muted-foreground tabular-nums">{p.total_count ?? p.job_count ?? 0}</td>
+                        <td className="p-2 align-middle"><Badge variant="secondary">{p.status}</Badge></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </CardContent>
@@ -155,45 +166,12 @@ export default function PlaylistsPage() {
             ) : children.length === 0 ? (
               <p className="text-sm text-muted-foreground">{t('playlists.emptyChildren')}</p>
             ) : (
-              <div className="-mx-1 max-h-[420px] overflow-auto rounded-lg border sm:mx-0">
-                 <Table>
-                   <TableHeader>
-                     <TableRow>
-                       <TableHead>{t('dashboard.recent.colTitle')}</TableHead>
-                       <TableHead>{t('dashboard.recent.colSize')}</TableHead>
-                       <TableHead>{t('dashboard.recent.colStatus')}</TableHead>
-                       <TableHead className="w-[1%]" />
-                     </TableRow>
-                   </TableHeader>
-                   <TableBody>
-                     {children.length > 0 ? (
-                       children.map((c) => (
-                         <TableRow key={c.id}>
-                           <TableCell className="max-w-[180px] truncate">{c.title || c.source_url || c.url}</TableCell>
-                           <TableCell className="text-muted-foreground">{formatBytes(c.file_size || 0)}</TableCell>
-                           <TableCell>
-                             <Badge variant="secondary">{c.status}</Badge>
-                           </TableCell>
-                           <TableCell>
-                             <Button variant="ghost" size="sm" asChild>
-                               <Link to={`/jobs/${c.id}`}>{t('playlists.details')}</Link>
-                             </Button>
-                           </TableCell>
-                         </TableRow>
-                       ))
-                     ) : (
-                       <TableRow>
-                         <TableCell colSpan={999} className="p-4 text-center text-muted-foreground">
-                           <div className="flex flex-col items-center justify-center py-8">
-                             <Inbox className="h-8 w-8 text-muted-foreground mb-3" aria-hidden />
-                             <p className="text-sm">{t('table.noRecords')}</p>
-                           </div>
-                         </TableCell>
-                       </TableRow>
-                     )}
-                   </TableBody>
-                 </Table>
-              </div>
+              <DataTable
+                columns={childColumns}
+                fetchData={(params) => api.get('/downloads/', { params: { ...params, playlist: selectedId, sort: 'queue' } })}
+                searchPlaceholder={t('table.searchPlaceholder')}
+                pageSize={15}
+              />
             )}
           </CardContent>
         </Card>

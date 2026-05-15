@@ -13,7 +13,7 @@ export default function GrabberPage() {
         </div>
         <div className="min-w-0 space-y-1">
           <h5 className="text-2xl font-bold tracking-tight text-foreground">{t('layout.automation.grabber')}</h5>
-          <p className="text-pretty text-muted-foreground">{t('grabber.pageDescription')}</p>
+          <p className="text-pretty text-muted-foreground">{t('layout.grabber.pageDescription')}</p>
         </div>
       </div>
 
@@ -24,13 +24,13 @@ export default function GrabberPage() {
               <ScanSearch className="size-5 text-muted-foreground" aria-hidden />
             </div>
             <div className="min-w-0 space-y-1">
-              <CardTitle className="text-xl">{t('grabber.cardTitle')}</CardTitle>
-              <CardDescription className="text-pretty">{t('grabber.cardDescription')}</CardDescription>
+              <CardTitle className="text-xl">{t('layout.grabber.cardTitle')}</CardTitle>
+              <CardDescription className="text-pretty">{t('layout.grabber.cardDescription')}</CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent className="pt-6">
-          <p className="text-muted-foreground">{t('grabber.comingSoon')}</p>
+          <p className="text-muted-foreground">{t('layout.grabber.comingSoon')}</p>
         </CardContent>
       </Card>
     </div>

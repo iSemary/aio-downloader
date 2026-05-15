@@ -13,7 +13,7 @@ export default function SitesManagerPage() {
         </div>
         <div className="min-w-0 space-y-1">
           <h5 className="text-2xl font-bold tracking-tight text-foreground">{t('layout.automation.sites')}</h5>
-          <p className="text-pretty text-muted-foreground">{t('sites.pageDescription')}</p>
+          <p className="text-pretty text-muted-foreground">{t('layout.sites.pageDescription')}</p>
         </div>
       </div>
 
@@ -24,13 +24,13 @@ export default function SitesManagerPage() {
               <Globe className="size-5 text-muted-foreground" aria-hidden />
             </div>
             <div className="min-w-0 space-y-1">
-              <CardTitle className="text-xl">{t('sites.cardTitle')}</CardTitle>
-              <CardDescription className="text-pretty">{t('sites.cardDescription')}</CardDescription>
+              <CardTitle className="text-xl">{t('layout.sites.cardTitle')}</CardTitle>
+              <CardDescription className="text-pretty">{t('layout.sites.cardDescription')}</CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent className="pt-6">
-          <p className="text-muted-foreground">{t('sites.comingSoon')}</p>
+          <p className="text-muted-foreground">{t('layout.sites.comingSoon')}</p>
         </CardContent>
       </Card>
     </div>

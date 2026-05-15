@@ -28,7 +28,7 @@ def detect_platform(url: str) -> str:
     return "generic"
 
 
-IMAGE_EXTENSIONS = frozenset({"jpg", "jpeg", "png", "gif", "webp", "bmp", "avif"})
+IMAGE_EXTENSIONS = frozenset({"jpg", "jpeg", "png", "gif", "webp", "bmp", "avif", "svg"})
 AUDIO_EXTENSIONS = frozenset({".mp3", ".m4a", ".aac", ".ogg", ".opus", ".wav", ".flac"})
 VIDEO_EXTENSIONS = frozenset({".mp4", ".webm", ".mkv", ".mov", ".avi", ".m4v"})
 
@@ -87,7 +87,7 @@ def _info_has_audio_only_stream(info: dict) -> bool:
         return True
     nested = _first_nested_entry(info)
     if nested and nested is not info:
-        return _formats_have_audio_only_stream(nested)
+        return _info_has_audio_only_stream(nested)
     return False
 
 
@@ -197,15 +197,35 @@ def analyze_url(url: str) -> dict:
                 "webpage_url": url,
             }
 
+    ext = path_lower.rsplit(".", 1)[-1] if "." in path_lower else ""
+    if ext in IMAGE_EXTENSIONS:
+        return {
+            "ok": True,
+            "platform": platform,
+            "title": "",
+            "thumbnail": url,
+            "duration_seconds": None,
+            "is_playlist": False,
+            "playlist_item_count": 1,
+            "media_kind": "image",
+            "options_level": "none",
+            "defaults": {"format": "mp4", "quality": "best"},
+            "allowed_formats": ["mp4"],
+            "allowed_qualities": ["best"],
+            "extractor_key": "direct",
+            "uploader": "",
+            "webpage_url": url,
+        }
+
     try:
-        opts: dict = {"quiet": True, "no_warnings": True, "skip_download": True}
+        opts: dict = {"quiet": True, "no_warnings": True, "skip_download": True, "ignoreerrors": True}
         with yt_dlp.YoutubeDL(opts) as ydl:
             info = ydl.extract_info(url, download=False)
     except Exception as exc:  # noqa: BLE001
         return _fail_payload(exc)
 
     if not isinstance(info, dict):
-        return _fail_payload(ValueError("Unexpected extractor response"))
+        return _fail_payload(ValueError("Video is private or unavailable, or unsupported URL."))
 
     ie_key = (info.get("ie_key") or info.get("extractor_key") or info.get("extractor") or "").lower()
     ctype = info.get("_type") or "video"
@@ -288,6 +308,7 @@ def probe_url(url: str) -> dict:
         "quiet": True,
         "no_warnings": True,
         "skip_download": True,
+        "ignoreerrors": True,
     }
     with yt_dlp.YoutubeDL(opts) as ydl:
         info = ydl.extract_info(url, download=False)

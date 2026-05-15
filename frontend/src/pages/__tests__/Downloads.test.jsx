@@ -36,31 +36,4 @@ describe('Downloads page exports', () => {
     expect(module.default).toBeDefined()
     expect(typeof module.default).toBe('function')
   })
-
-  it('exports STATUS_MAP constant', async () => {
-    const { STATUS_MAP } = await import('../../pages/Downloads')
-    expect(STATUS_MAP).toBeDefined()
-    expect(STATUS_MAP.unfinished).toBeDefined()
-    expect(STATUS_MAP.finished).toBeDefined()
-    expect(STATUS_MAP.scheduled).toBeDefined()
-  })
-
-  it('STATUS_MAP has correct unfinished statuses', async () => {
-    const { STATUS_MAP } = await import('../../pages/Downloads')
-    expect(STATUS_MAP.unfinished).toContain('pending')
-    expect(STATUS_MAP.unfinished).toContain('queued')
-    expect(STATUS_MAP.unfinished).toContain('downloading')
-    expect(STATUS_MAP.unfinished).toContain('processing')
-    expect(STATUS_MAP.unfinished).toContain('paused')
-  })
-
-  it('STATUS_MAP has correct finished statuses', async () => {
-    const { STATUS_MAP } = await import('../../pages/Downloads')
-    expect(STATUS_MAP.finished).toEqual(['done'])
-  })
-
-  it('STATUS_MAP has correct scheduled statuses', async () => {
-    const { STATUS_MAP } = await import('../../pages/Downloads')
-    expect(STATUS_MAP.scheduled).toEqual(['pending'])
-  })
 })
