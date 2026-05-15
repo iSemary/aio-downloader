@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { Inbox } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
@@ -32,13 +33,17 @@ function TableHeader({
 
 function TableBody({
   className,
+  children,
   ...props
 }) {
   return (
     <tbody
       data-slot="table-body"
       className={cn("[&_tr:last-child]:border-0", className)}
-      {...props} />
+      {...props}
+    >
+      {children}
+    </tbody>
   );
 }
 

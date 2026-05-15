@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   CalendarClock,
+  Cloud,
   KeyRound,
+  Link2,
   Repeat2,
   Save,
   Send,
@@ -30,8 +32,16 @@ export default function SettingsPage() {
     bot_token: '',
     chat_id: '',
     auto_send: false,
+    notify_on_failure: false,
     enabled: true,
     bot_configured: false,
+  })
+
+  const [gd, setGd] = useState({
+    enabled: false,
+    auto_upload: false,
+    connected: false,
+    root_folder_id: '',
   })
 
   const isOwner = user?.role === 'owner'
@@ -39,15 +49,26 @@ export default function SettingsPage() {
 
   const load = async () => {
     try {
-      const [me, tc] = await Promise.all([api.get('/auth/me/'), api.get('/integrations/telegram/')])
+      const [me, tc, gdc] = await Promise.all([
+        api.get('/auth/me/'),
+        api.get('/integrations/telegram/'),
+        api.get('/integrations/gdrive/'),
+      ])
       setUser(me.data)
       setTg((t) => ({
         ...t,
         chat_id: tc.data.chat_id || '',
         auto_send: !!me.data.preferences?.auto_send_telegram,
+        notify_on_failure: !!me.data.preferences?.notify_on_failure,
         enabled: tc.data.enabled !== false,
         bot_configured: !!tc.data.bot_configured,
       }))
+      setGd({
+        enabled: gdc.data.enabled || false,
+        auto_upload: gdc.data.auto_upload || false,
+        connected: gdc.data.connected || false,
+        root_folder_id: gdc.data.root_folder_id || '',
+      })
     } catch {
       toast.error(t('settings.loadFailed'))
     }
@@ -68,7 +89,7 @@ export default function SettingsPage() {
         payload.bot_token = tg.bot_token
       }
       await api.patch('/integrations/telegram/', payload)
-      await api.patch('/auth/preferences/', { auto_send_telegram: tg.auto_send })
+      await api.patch('/auth/preferences/', { auto_send_telegram: tg.auto_send, notify_on_failure: tg.notify_on_failure })
       toast.success('Telegram settings saved')
       setTg((t) => ({ ...t, bot_token: '' }))
       load()
@@ -83,6 +104,38 @@ export default function SettingsPage() {
       toast.success(res.data.message || 'OK')
     } catch (err) {
       toast.error(err.response?.data?.message || err.response?.data?.detail || 'Test failed')
+    }
+  }
+
+  async function connectGoogleDrive() {
+    try {
+      const res = await api.get('/integrations/gdrive/auth/')
+      window.location.href = res.data.auth_url
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to start OAuth')
+    }
+  }
+
+  async function testGoogleDrive() {
+    try {
+      const res = await api.post('/integrations/gdrive/test/')
+      toast.success(res.data.message || 'OK')
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.response?.data?.detail || 'Test failed')
+    }
+  }
+
+  async function saveGoogleDrive(e) {
+    e.preventDefault()
+    try {
+      await api.patch('/integrations/gdrive/', {
+        enabled: gd.enabled,
+        auto_upload: gd.auto_upload,
+        root_folder_id: gd.root_folder_id,
+      })
+      toast.success('Google Drive settings saved')
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Save failed')
     }
   }
 
@@ -211,6 +264,22 @@ export default function SettingsPage() {
                 />
               </div>
             </div>
+            <div className="grid gap-3 sm:grid-cols-1">
+              <div className="flex items-start justify-between gap-4 rounded-lg border bg-card p-4">
+                <div className="flex min-w-0 gap-3">
+                  <Zap className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
+                  <div className="min-w-0">
+                    <div className="font-medium leading-none">{t('settings.telegramNotifyOnFailure') || 'Notify on failure'}</div>
+                    <p className="mt-1.5 text-sm text-muted-foreground">{t('settings.telegramNotifyOnFailureHint') || 'Send alert when download fails.'}</p>
+                  </div>
+                </div>
+                <Switch
+                  className="shrink-0"
+                  checked={tg.notify_on_failure}
+                  onCheckedChange={(v) => setTg({ ...tg, notify_on_failure: v })}
+                />
+              </div>
+            </div>
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:flex-wrap">
               <Button type="submit" className="min-h-11 w-full gap-2 sm:w-auto">
                 <Save className="size-4 shrink-0" aria-hidden />
@@ -221,6 +290,87 @@ export default function SettingsPage() {
                 {t('settings.testTelegram')}
               </Button>
             </div>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card className="overflow-hidden border-border/80 shadow-sm">
+        <CardHeader className="border-b bg-muted/30">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex items-start gap-3">
+              <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600 ring-1 ring-emerald-500/20 dark:text-emerald-400">
+                <Cloud className="size-5" aria-hidden />
+              </div>
+              <div className="min-w-0 space-y-1">
+                <CardTitle className="text-xl">{t('settings.gdriveCardTitle') || 'Google Drive'}</CardTitle>
+                <CardDescription className="text-pretty">{t('settings.gdriveCardDescription') || 'Automatically mirror completed downloads to Google Drive.'}</CardDescription>
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-6">
+          <form className="grid gap-6" onSubmit={saveGoogleDrive}>
+            {!gd.connected ? (
+              <div className="flex flex-col gap-2">
+                <Button type="button" className="min-h-11 w-full gap-2" onClick={connectGoogleDrive}>
+                  <Link2 className="size-4 shrink-0" aria-hidden />
+                  {t('settings.connectGoogleDrive') || 'Connect Google Drive'}
+                </Button>
+              </div>
+            ) : (
+              <>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="flex items-start justify-between gap-4 rounded-lg border bg-card p-4">
+                    <div className="flex min-w-0 gap-3">
+                      <Cloud className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
+                      <div className="min-w-0">
+                        <div className="font-medium leading-none">{t('settings.gdriveEnabled') || 'Enabled'}</div>
+                        <p className="mt-1.5 text-sm text-muted-foreground">{t('settings.gdriveEnabledHint') || 'Enable Google Drive integration.'}</p>
+                      </div>
+                    </div>
+                    <Switch
+                      className="shrink-0"
+                      checked={gd.enabled}
+                      onCheckedChange={(v) => setGd({ ...gd, enabled: v })}
+                    />
+                  </div>
+                  <div className="flex items-start justify-between gap-4 rounded-lg border bg-card p-4">
+                    <div className="flex min-w-0 gap-3">
+                      <Cloud className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
+                      <div className="min-w-0">
+                        <div className="font-medium leading-none">{t('settings.gdriveAutoUpload') || 'Auto-upload'}</div>
+                        <p className="mt-1.5 text-sm text-muted-foreground">{t('settings.gdriveAutoUploadHint') || 'Upload all completed downloads automatically.'}</p>
+                      </div>
+                    </div>
+                    <Switch
+                      className="shrink-0"
+                      checked={gd.auto_upload}
+                      onCheckedChange={(v) => setGd({ ...gd, auto_upload: v })}
+                    />
+                  </div>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="root_folder_id">{t('settings.gdriveFolderId') || 'Root folder ID (optional)'}</Label>
+                  <Input
+                    id="root_folder_id"
+                    className="min-h-11 font-mono text-sm"
+                    placeholder={t('settings.gdriveFolderIdPlaceholder') || 'Leave empty for root'}
+                    value={gd.root_folder_id}
+                    onChange={(e) => setGd({ ...gd, root_folder_id: e.target.value })}
+                  />
+                </div>
+                <div className="flex flex-col-reverse gap-2 sm:flex-row sm:flex-wrap">
+                  <Button type="submit" className="min-h-11 w-full gap-2 sm:w-auto">
+                    <Save className="size-4 shrink-0" aria-hidden />
+                    {t('settings.saveGoogleDrive') || 'Save'}
+                  </Button>
+                  <Button type="button" variant="outline" className="min-h-11 w-full gap-2 sm:w-auto" onClick={testGoogleDrive}>
+                    <Cloud className="size-4 shrink-0" aria-hidden />
+                    {t('settings.testGoogleDrive') || 'Test connection'}
+                  </Button>
+                </div>
+              </>
+            )}
           </form>
         </CardContent>
       </Card>

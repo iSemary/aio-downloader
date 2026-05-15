@@ -3,6 +3,37 @@
     "appName": "AIO Downloader",
     "tagline": "File downloads & storage",
     "groupMain": "Application",
+    "groupDownloads": "Downloads",
+    "groupCategories": "Categories",
+    "groupAutomation": "Automation",
+    "downloads": {
+      "all": "All Downloads",
+      "unfinished": "Unfinished",
+      "finished": "Finished",
+      "scheduled": "Scheduled"
+    },
+    "categories": {
+      "compressed": "Compressed",
+      "documents": "Documents",
+      "media": "Music/Video",
+      "programs": "Programs"
+    },
+    "automation": {
+      "grabber": "Grabber",
+      "sites": "Sites Manager"
+    },
+    "grabber": {
+      "pageDescription": "Search and grab media from websites",
+      "cardTitle": "Media Grabber",
+      "cardDescription": "Search websites for media content to download",
+      "comingSoon": "Grabber functionality coming soon..."
+    },
+    "sites": {
+      "pageDescription": "Manage site accounts and credentials",
+      "cardTitle": "Sites Manager",
+      "cardDescription": "Manage login credentials for sites requiring authentication",
+      "comingSoon": "Sites manager functionality coming soon..."
+    },
     "nav": {
       "dashboard": "Dashboard",
       "history": "History",
@@ -12,6 +43,9 @@
       "playlists": "Playlists",
       "storage": "Storage",
       "settings": "Settings"
+    },
+    "table": {
+      "noRecords": "No records to show"
     },
     "toggleSidebar": "Toggle sidebar",
     "theme": "Theme",
@@ -97,7 +131,9 @@
       "quality_audio_only": "Audio only",
       "paste": "Paste",
       "download": "Download",
-      "bulkAddLink": "Queue many URLs at once"
+      "bulkAddLink": "Queue many URLs at once",
+      "uploadToGdrive": "Upload to Google Drive",
+      "uploadToGdriveHint": "Upload this specific download to Google Drive after completion."
     },
     "pulse": {
       "activeTitle": "Active downloads",

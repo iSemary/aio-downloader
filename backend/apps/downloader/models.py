@@ -98,6 +98,7 @@ class DownloadJob(models.Model):
     max_retries = models.PositiveIntegerField(default=3)
     queue_order = models.IntegerField(default=0)
     priority = models.PositiveSmallIntegerField(default=0)
+    upload_to_google_drive = models.BooleanField(default=False)
     scheduled_at = models.DateTimeField(null=True, blank=True)
     started_at = models.DateTimeField(null=True, blank=True)
     completed_at = models.DateTimeField(

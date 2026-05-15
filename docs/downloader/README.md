@@ -56,6 +56,7 @@ Clients subscribe to `ws/downloads/<job_id>/` (see frontend `useJobWebSocket`). 
 - **Default list** — `GET /downloads/` — newest first (`sort` omitted or `sort=recent`).
 - **Queue order** — `GET /downloads/?sort=queue` — orders by `queue_order`, then `-created_at` (for manager UIs).
 - **Reorder** `POST /downloads/reorder/` — body `{ "order": ["<uuid>", …] }`; assigns `queue_order` 0…n−1 for those ids (must all belong to the user).
+- **Status filter** — `GET /downloads/?status=<status>` — filter by single status, or `GET /downloads/?status=pending,queued,downloading` for comma-separated multiple statuses. Valid values: `pending`, `queued`, `downloading`, `processing`, `done`, `error`, `cancelled`, `paused`.
 
 ## Pause and resume (HTTP only)
 

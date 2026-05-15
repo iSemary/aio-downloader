@@ -72,7 +72,9 @@ class DownloadJobViewSet(viewsets.ModelViewSet):
         qs = _job_queryset_for(self.request.user)
         st = self.request.query_params.get("status")
         if st:
-            qs = qs.filter(status=st)
+            statuses = [s.strip() for s in st.split(',') if s.strip()]
+            if statuses:
+                qs = qs.filter(status__in=statuses)
 
         playlist_id = self.request.query_params.get("playlist_parent") or self.request.query_params.get("playlist")
         if playlist_id:
@@ -304,6 +306,7 @@ class DownloadJobViewSet(viewsets.ModelViewSet):
                         media_kind=cf["media_kind"],
                         http_connections=http_connections,
                         queue_order=qo,
+                        upload_to_google_drive=upload_to_gdrive,
                     )
                     enqueue_download.delay(str(job.id))
                     created.append(DownloadJobSerializer(job).data)
@@ -346,19 +349,20 @@ class DownloadJobViewSet(viewsets.ModelViewSet):
                     created.append(DownloadJobSerializer(job).data)
                     continue
                 job = DownloadJob.objects.create(
-                    user=request.user,
-                    source_url=entry_url,
-                    title=(e.get("title") or probe.get("title") or "")[:512],
-                    platform=e.get("platform") or "generic",
-                    thumbnail_url=(analysis.get("thumbnail") or "")[:2048] if analysis.get("thumbnail") else "",
-                    duration_seconds=analysis.get("duration_seconds"),
-                    format=fmt,
-                    quality=quality,
-                    engine=ENGINE_YTDLP,
-                    media_kind=_map_analysis_media_kind(analysis),
-                    http_connections=http_connections,
-                    queue_order=qo,
-                )
+                        user=request.user,
+                        source_url=entry_url,
+                        title=(e.get("title") or probe.get("title") or "")[:512],
+                        platform=e.get("platform") or "generic",
+                        thumbnail_url=(analysis.get("thumbnail") or "")[:2048] if analysis.get("thumbnail") else "",
+                        duration_seconds=analysis.get("duration_seconds"),
+                        format=fmt,
+                        quality=quality,
+                        engine=ENGINE_YTDLP,
+                        media_kind=_map_analysis_media_kind(analysis),
+                        http_connections=http_connections,
+                        queue_order=qo,
+                        upload_to_google_drive=upload_to_gdrive,
+                    )
                 enqueue_download.delay(str(job.id))
                 created.append(DownloadJobSerializer(job).data)
             except Exception as exc:  # noqa: BLE001

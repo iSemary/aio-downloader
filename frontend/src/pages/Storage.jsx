@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Database, HardDrive, RefreshCw, Send, Trash2 } from 'lucide-react'
+import { Database, HardDrive, Inbox, RefreshCw, Send, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { api } from '@/api/client'
 import { Button } from '@/components/ui/button'
@@ -103,53 +103,64 @@ export default function StoragePage() {
                   <TableHead className="min-w-40 text-end">{t('storage.colActions')}</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody>
-                {files.map((f) => (
-                  <TableRow key={f.path}>
-                    <TableCell className="max-w-[min(28rem,70vw)] truncate font-mono text-xs">{f.path}</TableCell>
-                    <TableCell className="whitespace-nowrap tabular-nums">{formatBytes(f.size)}</TableCell>
-                    <TableCell className="text-end">
-                      <div className="flex flex-col items-stretch justify-end gap-2 sm:flex-row sm:items-center sm:justify-end">
-                        {f.job_id ? (
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            className="min-h-9 gap-1.5"
-                            onClick={async () => {
-                              try {
-                                await api.post(`/integrations/telegram/push/${f.job_id}/`)
-                                toast.success('Sent to Telegram')
-                              } catch (e) {
-                                toast.error(e.response?.data?.detail || 'Telegram failed')
-                              }
-                            }}
-                          >
-                            <Send className="size-3.5 shrink-0" aria-hidden />
-                            <span className="hidden sm:inline">{t('dashboard.active.telegram')}</span>
-                          </Button>
-                        ) : null}
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          className="min-h-9 gap-1.5"
-                          onClick={async () => {
-                            try {
-                              await api.delete(`/storage/${encodeURIComponent(f.path)}/`)
-                              toast.success('Deleted')
-                              load()
-                            } catch {
-                              toast.error('Delete failed')
-                            }
-                          }}
-                        >
-                          <Trash2 className="size-3.5 shrink-0" aria-hidden />
-                          <span className="hidden sm:inline">{t('history.delete')}</span>
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
+               <TableBody>
+                 {files.length > 0 ? (
+                   files.map((f) => (
+                     <TableRow key={f.path}>
+                       <TableCell className="max-w-[min(28rem,70vw)] truncate font-mono text-xs">{f.path}</TableCell>
+                       <TableCell className="whitespace-nowrap tabular-nums">{formatBytes(f.size)}</TableCell>
+                       <TableCell className="text-end">
+                         <div className="flex flex-col items-stretch justify-end gap-2 sm:flex-row sm:items-center sm:justify-end">
+                           {f.job_id ? (
+                             <Button
+                               size="sm"
+                               variant="secondary"
+                               className="min-h-9 gap-1.5"
+                               onClick={async () => {
+                                 try {
+                                   await api.post(`/integrations/telegram/push/${f.job_id}/`)
+                                   toast.success('Sent to Telegram')
+                                 } catch (e) {
+                                   toast.error(e.response?.data?.detail || 'Telegram failed')
+                                 }
+                               }}
+                             >
+                               <Send className="size-3.5 shrink-0" aria-hidden />
+                               <span className="hidden sm:inline">{t('dashboard.active.telegram')}</span>
+                             </Button>
+                           ) : null}
+                           <Button
+                             size="sm"
+                             variant="destructive"
+                             className="min-h-9 gap-1.5"
+                             onClick={async () => {
+                               try {
+                                 await api.delete(`/storage/${encodeURIComponent(f.path)}/`)
+                                 toast.success('Deleted')
+                                 load()
+                               } catch {
+                                 toast.error('Delete failed')
+                               }
+                             }}
+                           >
+                             <Trash2 className="size-3.5 shrink-0" aria-hidden />
+                             <span className="hidden sm:inline">{t('history.delete')}</span>
+                           </Button>
+                         </div>
+                       </TableCell>
+                     </TableRow>
+                   ))
+                 ) : (
+                   <TableRow>
+                     <TableCell colSpan={999} className="p-4 text-center text-muted-foreground">
+                       <div className="flex flex-col items-center justify-center py-8">
+                         <Inbox className="h-8 w-8 text-muted-foreground mb-3" aria-hidden />
+                         <p className="text-sm">{t('table.noRecords')}</p>
+                       </div>
+                     </TableCell>
+                   </TableRow>
+                 )}
+               </TableBody>
             </Table>
           </div>
         </CardContent>

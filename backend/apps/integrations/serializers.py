@@ -3,7 +3,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 
 from apps.integrations.crypto import encrypt_str
-from apps.integrations.models import TelegramConfig, TelegramSend
+from apps.integrations.models import GoogleDriveConfig, TelegramConfig, TelegramSend
 
 User = get_user_model()
 
@@ -85,3 +85,23 @@ class TelegramConfigSerializer(serializers.ModelSerializer):
             setattr(instance, k, v)
         instance.save()
         return instance
+
+
+class GoogleDriveConfigSerializer(serializers.ModelSerializer):
+    connected = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = GoogleDriveConfig
+        fields = (
+            "id",
+            "enabled",
+            "root_folder_id",
+            "auto_upload",
+            "connected",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = ("id", "connected", "created_at", "updated_at")
+
+    def get_connected(self, obj: GoogleDriveConfig) -> bool:
+        return bool(obj.credentials_encrypted and obj.credentials_encrypted.get("token"))

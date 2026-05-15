@@ -5,6 +5,7 @@ import {
   ChevronLeft,
   ChevronRight,
   History as HistoryIcon,
+  Inbox,
   RotateCw,
   Send,
   SquareArrowOutUpRight,
@@ -174,32 +175,43 @@ export default function HistoryPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4 pt-6">
-          <div className="-mx-1 overflow-x-auto rounded-lg border sm:mx-0">
-            <Table>
-              <TableHeader>
-                {table.getHeaderGroups().map((hg) => (
-                  <TableRow key={hg.id}>
-                    {hg.headers.map((h) => (
-                      <TableHead key={h.id} className="whitespace-nowrap">
-                        {flexRender(h.column.columnDef.header, h.getContext())}
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody>
-                {table.getRowModel().rows.map((row) => (
-                  <TableRow key={row.id}>
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className="align-top">
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+           <div className="-mx-1 overflow-x-auto rounded-lg border sm:mx-0">
+             <Table>
+               <TableHeader>
+                 {table.getHeaderGroups().map((hg) => (
+                   <TableRow key={hg.id}>
+                     {hg.headers.map((h) => (
+                       <TableHead key={h.id} className="whitespace-nowrap">
+                         {flexRender(h.column.columnDef.header, h.getContext())}
+                       </TableHead>
+                     ))}
+                   </TableRow>
+                 ))}
+               </TableHeader>
+               <TableBody>
+                 {table.getRowModel().rows.length > 0 ? (
+                   table.getRowModel().rows.map((row) => (
+                     <TableRow key={row.id}>
+                       {row.getVisibleCells().map((cell) => (
+                         <TableCell key={cell.id} className="align-top">
+                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                         </TableCell>
+                       ))}
+                     </TableRow>
+                   ))
+                 ) : (
+                   <TableRow>
+                     <TableCell colSpan={999} className="p-4 text-center text-muted-foreground">
+                       <div className="flex flex-col items-center justify-center py-8">
+                         <Inbox className="h-8 w-8 text-muted-foreground mb-3" aria-hidden />
+                         <p className="text-sm">{t('table.noRecords')}</p>
+                       </div>
+                     </TableCell>
+                   </TableRow>
+                 )}
+               </TableBody>
+             </Table>
+           </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <Button
               variant="outline"

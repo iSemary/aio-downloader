@@ -81,6 +81,7 @@ class DownloadJobSerializer(serializers.ModelSerializer):
     expected_size = serializers.SerializerMethodField()
     sent_to_telegram = serializers.SerializerMethodField()
     playlist_parent = serializers.SerializerMethodField()
+    upload_to_google_drive = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = DownloadJob
@@ -119,6 +120,7 @@ class DownloadJobSerializer(serializers.ModelSerializer):
             "sent_to_telegram",
             "created_at",
             "updated_at",
+            "upload_to_google_drive",
         )
         read_only_fields = fields
 
@@ -155,6 +157,9 @@ class DownloadJobSerializer(serializers.ModelSerializer):
     def get_sent_to_telegram(self, obj: DownloadJob) -> bool:
         return obj.telegram_sends.filter(status="sent").exists()
 
+    def get_upload_to_google_drive(self, obj: DownloadJob) -> bool:
+        return obj.upload_to_google_drive
+
     def get_playlist_parent(self, obj: DownloadJob):
         if obj.playlist_id:
             return str(obj.playlist_id)
@@ -165,10 +170,11 @@ class DownloadJobCreateSerializer(serializers.ModelSerializer):
     http_connections = serializers.IntegerField(required=False, min_value=1, max_value=8, default=1)
     url = serializers.CharField(write_only=True, required=False, allow_blank=False, max_length=4096)
     source_url = serializers.CharField(required=False, allow_blank=False, trim_whitespace=True, max_length=4096)
+    upload_to_google_drive = serializers.BooleanField(required=False, default=False)
 
     class Meta:
         model = DownloadJob
-        fields = ("source_url", "url", "format", "quality", "http_connections", "priority")
+        fields = ("source_url", "url", "format", "quality", "http_connections", "priority", "upload_to_google_drive")
 
     def validate(self, attrs):
         raw = (attrs.pop("url", None) or attrs.get("source_url") or "").strip()

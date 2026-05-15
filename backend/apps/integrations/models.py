@@ -33,6 +33,23 @@ class TelegramConfig(models.Model):
         return f"TelegramConfig({self.user_id})"
 
 
+class GoogleDriveConfig(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="gdrive_config",
+    )
+    enabled = models.BooleanField(default=False)
+    credentials_encrypted = models.JSONField(default=dict, blank=True)
+    root_folder_id = models.CharField(max_length=64, blank=True, default="")
+    auto_upload = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self) -> str:
+        return f"GoogleDriveConfig({self.user_id})"
+
+
 class TelegramSend(models.Model):
     class Status(models.TextChoices):
         PENDING = "pending", "Pending"

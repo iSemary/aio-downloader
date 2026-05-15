@@ -41,6 +41,8 @@ class UserPreferences(models.Model):
     )
     auto_send_telegram = models.BooleanField(default=False)
     notify_on_complete = models.BooleanField(default=True)
+    notify_on_failure = models.BooleanField(default=False)
+    auto_upload_google_drive = models.BooleanField(default=False)
     timezone = models.CharField(max_length=64, default="UTC")
 
     def __str__(self) -> str:

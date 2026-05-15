@@ -180,8 +180,10 @@ def download_video_task(self, job_id: str):
         )
 
         from apps.integrations.telegram import maybe_auto_send
+        from apps.integrations.gdrive import maybe_auto_upload
 
         maybe_auto_send(job)
+        maybe_auto_upload(job)
     except Exception as exc:  # noqa: BLE001
         logger.exception("Download failed for %s", job_id)
         if "cancelled" in str(exc).lower():
@@ -196,6 +198,10 @@ def download_video_task(self, job_id: str):
         )
         _log_event(job, JobEvent.EventType.ERROR, message=str(exc)[:500], payload={"detail": str(exc)[:2000]})
         _send_ws(str(job.id), {"type": "error", "message": str(exc)})
+
+        from apps.integrations.telegram import send_failure_alert
+
+        send_failure_alert(job)
 
 
 @shared_task(bind=True)
@@ -328,8 +334,10 @@ def download_http_task(self, job_id: str):
         )
 
         from apps.integrations.telegram import maybe_auto_send
+        from apps.integrations.gdrive import maybe_auto_upload
 
         maybe_auto_send(job)
+        maybe_auto_upload(job)
     except PauseRequested:
         _send_ws(job_id, {"type": "paused"})
         return
@@ -362,6 +370,10 @@ def download_http_task(self, job_id: str):
         )
         _log_event(job, JobEvent.EventType.ERROR, message=str(exc)[:500])
         _send_ws(job_id, {"type": "error", "message": str(exc)})
+
+        from apps.integrations.telegram import send_failure_alert
+
+        send_failure_alert(job)
 
 
 @shared_task

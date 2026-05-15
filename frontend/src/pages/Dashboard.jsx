@@ -209,6 +209,7 @@ export default function DashboardPage() {
   const [dashboard, setDashboard] = useState(null);
   const [recent, setRecent] = useState([]);
   const [wsIds, setWsIds] = useState([]);
+  const [uploadToGdrive, setUploadToGdrive] = useState(false);
   const activeJobs = useDownloadStore((s) => s.activeJobs);
   const upsertJob = useDownloadStore((s) => s.upsertJob);
   const updateJob = useDownloadStore((s) => s.updateJobProgress);
@@ -337,6 +338,7 @@ export default function DashboardPage() {
         url: trimmed,
         format: effectiveFormat,
         quality: effectiveQuality,
+        upload_to_google_drive: uploadToGdrive,
       })
       const isPlaylist = data && data.total_count != null && data.engine === undefined
       toast.success(t('dashboard.toast.started'))
@@ -678,7 +680,7 @@ export default function DashboardPage() {
             ) : null}
 
             {optionsLevel === 'full' || optionsLevel === 'audio' ? (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <p className="text-sm font-medium text-foreground">
                   {t('dashboard.newDownload.outputOptions')}
                 </p>
@@ -728,6 +730,41 @@ export default function DashboardPage() {
                         ))}
                       </SelectContent>
                     </Select>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex items-start justify-between gap-4 rounded-lg border bg-card p-4">
+                    <div className="flex min-w-0 gap-3">
+                      <Cloud className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
+                      <div className="min-w-0">
+                        <div className="font-medium leading-none">{t('settings.gdriveAutoUpload') || 'Auto-upload'}</div>
+                        <p className="mt-1.5 text-sm text-muted-foreground">{t('settings.gdriveAutoUploadHint') || 'Upload all completed downloads automatically.'}</p>
+                      </div>
+                    </div>
+                    <Switch
+                      className="shrink-0"
+                      checked={user?.preferences?.auto_upload_google_drive || false}
+                      onCheckedChange={(v) => {
+                        api.patch('/auth/preferences/', { auto_upload_google_drive: v });
+                        setUser(prev => ({ ...prev, preferences: { ...prev.preferences, auto_upload_google_drive: v } }));
+                      }}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex items-start justify-between gap-4 rounded-lg border bg-card p-4">
+                    <div className="flex min-w-0 gap-3">
+                      <Cloud className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
+                      <div className="min-w-0">
+                        <div className="font-medium leading-none">{t('dashboard.newDownload.uploadToGdrive') || 'Upload to Google Drive'}</div>
+                        <p className="mt-1.5 text-sm text-muted-foreground">{t('dashboard.newDownload.uploadToGdriveHint') || 'Upload this specific download to Google Drive after completion.'}</p>
+                      </div>
+                    </div>
+                    <Switch
+                      className="shrink-0"
+                      checked={uploadToGdrive}
+                      onCheckedChange={(v) => setUploadToGdrive(v)}
+                    />
                   </div>
                 </div>
               </div>
@@ -1262,27 +1299,38 @@ export default function DashboardPage() {
                   <TableHead>{t('dashboard.recent.colTg')}</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody>
-                {recent.map((j) => (
-                  <TableRow key={j.id}>
-                    <TableCell className="max-w-[200px] truncate">
-                      {j.title || j.source_url || j.url}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{j.platform}</Badge>
-                    </TableCell>
-                    <TableCell>{formatBytes(j.file_size)}</TableCell>
-                    <TableCell>
-                      <Badge>{j.status}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      {j.sent_to_telegram
-                        ? t('dashboard.recent.yes')
-                        : t('dashboard.recent.no')}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
+               <TableBody>
+                 {recent.length > 0 ? (
+                   recent.map((j) => (
+                     <TableRow key={j.id}>
+                       <TableCell className="max-w-[200px] truncate">
+                         {j.title || j.source_url || j.url}
+                       </TableCell>
+                       <TableCell>
+                         <Badge variant="outline">{j.platform}</Badge>
+                       </TableCell>
+                       <TableCell>{formatBytes(j.file_size)}</TableCell>
+                       <TableCell>
+                         <Badge>{j.status}</Badge>
+                       </TableCell>
+                       <TableCell>
+                         {j.sent_to_telegram
+                           ? t('dashboard.recent.yes')
+                           : t('dashboard.recent.no')}
+                       </TableCell>
+                     </TableRow>
+                   ))
+                 ) : (
+                   <TableRow>
+                     <TableCell colSpan={999} className="p-4 text-center text-muted-foreground">
+                       <div className="flex flex-col items-center justify-center py-8">
+                         <Inbox className="h-8 w-8 text-muted-foreground mb-3" aria-hidden />
+                         <p className="text-sm">{t('table.noRecords')}</p>
+                       </div>
+                     </TableCell>
+                   </TableRow>
+                 )}
+               </TableBody>
             </Table>
           </CardContent>
         </Card>

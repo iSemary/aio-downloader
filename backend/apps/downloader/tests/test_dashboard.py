@@ -58,7 +58,7 @@ class DownloadDashboardApiTests(TestCase):
             title="Done",
             platform="youtube",
             status=DownloadJob.Status.DONE,
-            file_size=1024,
+            file_size_bytes=1024,
             completed_at=now,
         )
         res = self.client.get("/api/downloads/dashboard/")

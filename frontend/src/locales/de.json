@@ -3,6 +3,37 @@
     "appName": "AIO Downloader",
     "tagline": "Datei-Downloads & Speicher",
     "groupMain": "Anwendung",
+    "groupDownloads": "Downloads",
+    "groupCategories": "Kategorien",
+    "groupAutomation": "Automatisierung",
+    "downloads": {
+      "all": "Alle Downloads",
+      "unfinished": "Unvollendet",
+      "finished": "Abgeschlossen",
+      "scheduled": "Geplant"
+    },
+    "categories": {
+      "compressed": "Komprimiert",
+      "documents": "Dokumente",
+      "media": "Musik/Video",
+      "programs": "Programme"
+    },
+    "automation": {
+      "grabber": "Grabber",
+      "sites": "Seiten-Manager"
+    },
+    "grabber": {
+      "pageDescription": "Medien von Websites suchen und abrufen",
+      "cardTitle": "Medien-Grabber",
+      "cardDescription": "Websites nach Medieninhalten zum Herunterladen durchsuchen",
+      "comingSoon": "Grabber-Funktion bald verfügbar..."
+    },
+    "sites": {
+      "pageDescription": "Site-Konten und Anmeldedaten verwalten",
+      "cardTitle": "Seiten-Manager",
+      "cardDescription": "Anmeldedaten für Websites verwalten, die Authentifizierung erfordern",
+      "comingSoon": "Seiten-Manager-Funktion bald verfügbar..."
+    },
     "nav": {
       "dashboard": "Dashboard",
       "history": "Verlauf",
@@ -12,6 +43,9 @@
       "playlists": "Playlists",
       "storage": "Speicher",
       "settings": "Einstellungen"
+    },
+    "table": {
+      "noRecords": "Keine Einträge vorhanden"
     },
     "toggleSidebar": "Seitenleiste umschalten",
     "theme": "Design",
@@ -97,7 +131,9 @@
       "quality_audio_only": "Nur Audio",
       "paste": "Einfügen",
       "download": "Download",
-      "bulkAddLink": "Viele URLs auf einmal einreihen"
+      "bulkAddLink": "Viele URLs auf einmal einreihen",
+      "uploadToGdrive": "Auf Google Drive hochladen",
+      "uploadToGdriveHint": "Laden Sie diesen spezifischen Download nach Abschluss auf Google Drive hoch."
     },
     "pulse": {
       "activeTitle": "Aktive Downloads",

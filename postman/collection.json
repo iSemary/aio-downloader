@@ -152,50 +152,104 @@
         }
       ]
     },
-    {
-      "name": "Integrations",
-      "description": "Telegram: only users with role `owner` may set `bot_token` via PATCH. All users set `chat_id` (receiver). GET includes `bot_configured` (whether the owner saved a token). Test/push use the owner token with the caller's receiver.",
-      "item": [
-        {
-          "name": "Get Telegram config",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
-            "url": "{{base_url}}/api/integrations/telegram/"
-          }
-        },
-        {
-          "name": "Save Telegram config",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{access_token}}" },
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "url": "{{base_url}}/api/integrations/telegram/",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"bot_token\": \"\",\n  \"chat_id\": \"\",\n  \"auto_send\": false,\n  \"enabled\": true\n}"
-            }
-          }
-        },
-        {
-          "name": "Test Telegram",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
-            "url": "{{base_url}}/api/integrations/telegram/test/"
-          }
-        },
-        {
-          "name": "Push to Telegram",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
-            "url": "{{base_url}}/api/integrations/telegram/push/{{job_id}}/"
-          }
-        }
-      ]
-    }
+{
+       "name": "Integrations",
+       "description": "Telegram: only users with role `owner` may set `bot_token` via PATCH. All users set `chat_id` (receiver). GET includes `bot_configured` (whether the owner saved a token). Test/push use the owner token with the caller's receiver.\n\nGoogle Drive: OAuth2 flow for file mirroring. Connect via /auth/, handle callback, then configure settings.",
+       "item": [
+         {
+           "name": "Get Telegram config",
+           "request": {
+             "method": "GET",
+             "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+             "url": "{{base_url}}/api/integrations/telegram/"
+           }
+         },
+         {
+           "name": "Save Telegram config",
+           "request": {
+             "method": "PATCH",
+             "header": [
+               { "key": "Authorization", "value": "Bearer {{access_token}}" },
+               { "key": "Content-Type", "value": "application/json" }
+             ],
+             "url": "{{base_url}}/api/integrations/telegram/",
+             "body": {
+               "mode": "raw",
+               "raw": "{\n  \"bot_token\": \"\",\n  \"chat_id\": \"\",\n  \"auto_send\": false,\n  \"enabled\": true\n}"
+             }
+           }
+         },
+         {
+           "name": "Test Telegram",
+           "request": {
+             "method": "POST",
+             "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+             "url": "{{base_url}}/api/integrations/telegram/test/"
+           }
+         },
+         {
+           "name": "Push to Telegram",
+           "request": {
+             "method": "POST",
+             "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+             "url": "{{base_url}}/api/integrations/telegram/push/{{job_id}}/"
+           }
+         },
+         {
+           "name": "Get Google Drive config",
+           "request": {
+             "method": "GET",
+             "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+             "url": "{{base_url}}/api/integrations/gdrive/"
+           }
+         },
+         {
+           "name": "Save Google Drive config",
+           "request": {
+             "method": "PATCH",
+             "header": [
+               { "key": "Authorization", "value": "Bearer {{access_token}}" },
+               { "key": "Content-Type", "value": "application/json" }
+             ],
+             "url": "{{base_url}}/api/integrations/gdrive/",
+             "body": {
+               "mode": "raw",
+               "raw": "{\n  \"enabled\": false,\n  \"auto_upload\": false,\n  \"root_folder_id\": \"\"\n}"
+             }
+           }
+         },
+         {
+           "name": "Get Google Drive auth URL",
+           "request": {
+             "method": "GET",
+             "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+             "url": "{{base_url}}/api/integrations/gdrive/auth/"
+           }
+         },
+         {
+           "name": "Google Drive callback",
+           "request": {
+             "method": "POST",
+             "header": [
+               { "key": "Authorization", "value": "Bearer {{access_token}}" },
+               { "key": "Content-Type", "value": "application/json" }
+             ],
+             "url": "{{base_url}}/api/integrations/gdrive/callback/",
+             "body": {
+               "mode": "raw",
+               "raw": "{\n  \"code\": \"authorization_code_from_google\",\n  \"state\": \"optional_state_parameter\"\n}"
+             }
+           }
+         },
+         {
+           "name": "Test Google Drive connection",
+           "request": {
+             "method": "POST",
+             "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+             "url": "{{base_url}}/api/integrations/gdrive/test/"
+           }
+         }
+       ]
+     }
   ]
 }

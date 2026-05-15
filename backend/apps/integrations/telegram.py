@@ -168,3 +168,32 @@ async def test_connection_async(token: str, chat_id: str, owner_cfg: TelegramCon
 
 def test_connection(token: str, chat_id: str, owner_cfg: TelegramConfig | None = None) -> str:
     return _run(test_connection_async(token, chat_id, owner_cfg))
+
+
+def send_failure_alert(job: DownloadJob) -> None:
+    try:
+        prefs = job.user.preferences
+    except Exception:
+        return
+    if not prefs.notify_on_failure:
+        return
+    try:
+        cfg = TelegramConfig.objects.get(user=job.user, enabled=True)
+    except TelegramConfig.DoesNotExist:
+        return
+    if not cfg.chat_id:
+        return
+    try:
+        get_owner_bot_token()
+    except ValueError:
+        return
+
+    owner_cfg = get_owner_telegram_config()
+    token = get_owner_bot_token()
+    bot = _make_bot(token, owner_cfg)
+    error_msg = job.error_message or "Unknown error"
+    text = f"Download failed: {job.title}\nError: {error_msg[:500]}"
+    try:
+        _run(bot.send_message(chat_id=cfg.chat_id, text=text))
+    except Exception:
+        logging.getLogger(__name__).exception("Telegram failure alert failed")

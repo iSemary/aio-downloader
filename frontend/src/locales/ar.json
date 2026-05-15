@@ -3,6 +3,37 @@
     "appName": "AIO Downloader",
     "tagline": "تنزيل الملفات والتخزين",
     "groupMain": "التطبيق",
+    "groupDownloads": "التنزيلات",
+    "groupCategories": "الفئات",
+    "groupAutomation": "الأتمتة",
+    "downloads": {
+      "all": "كل التنزيلات",
+      "unfinished": "غير مكتملة",
+      "finished": "مكتملة",
+      "scheduled": "مجدولة"
+    },
+    "categories": {
+      "compressed": "مضغوطة",
+      "documents": "مستندات",
+      "media": "موسيقى/فيديو",
+      "programs": "برامج"
+    },
+    "automation": {
+      "grabber": "الماسك",
+      "sites": "إدارة المواقع"
+    },
+    "grabber": {
+      "pageDescription": "البحث وجلب الوسائط من المواقع",
+      "cardTitle": "جارٍ الوسائط",
+      "cardDescription": "البحث في المواقع عن محتوى الوسائط للتنزيل",
+      "comingSoon": "ميزة الجارٍ قيد التطوير..."
+    },
+    "sites": {
+      "pageDescription": "إدارة حسابات الموقع وبيانات الاعتماد",
+      "cardTitle": "مدير المواقع",
+      "cardDescription": "إدارة بيانات تسجيل الدخول للمواقع التي تتطلب مصادقة",
+      "comingSoon": "ميزة مدير المواقع قيد التطوير..."
+    },
     "nav": {
       "dashboard": "لوحة التحكم",
       "history": "السجل",
@@ -12,6 +43,9 @@
       "playlists": "قوائم التشغيل",
       "storage": "التخزين",
       "settings": "الإعدادات"
+    },
+    "table": {
+      "noRecords": "لا توجد سجلات للعرض"
     },
     "toggleSidebar": "طي/إظهار الشريط الجانبي",
     "theme": "المظهر",
@@ -97,7 +131,9 @@
       "quality_audio_only": "صوت فقط",
       "paste": "لصق",
       "download": "تنزيل",
-      "bulkAddLink": "إضافة العديد من الروابط دفعة واحدة"
+      "bulkAddLink": "إضافة العديد من الروابط دفعة واحدة",
+      "uploadToGdrive": "رفع إلى Google Drive",
+      "uploadToGdriveHint": "رفع هذا التنزيل المحدد إلى Google Drive بعد الإكمال."
     },
     "pulse": {
       "activeTitle": "تنزيلات نشطة",

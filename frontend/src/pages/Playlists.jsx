@@ -96,34 +96,45 @@ export default function PlaylistsPage() {
               <p className="text-sm text-muted-foreground">{t('playlists.emptyParents')}</p>
             ) : (
               <div className="-mx-1 max-h-[420px] overflow-auto rounded-lg border sm:mx-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>{t('dashboard.recent.colTitle')}</TableHead>
-                      <TableHead>{t('playlists.childrenTitle')}</TableHead>
-                      <TableHead>{t('dashboard.recent.colStatus')}</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {parents.map((p) => (
-                      <TableRow
-                        key={p.id}
-                        className={selectedId === p.id ? 'bg-muted/60' : 'cursor-pointer'}
-                        onClick={() => setSelectedId(p.id)}
-                      >
-                        <TableCell className="max-w-[200px] truncate font-medium">
-                          {p.title || p.source_url}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground tabular-nums">
-                          {p.total_count ?? p.job_count ?? 0}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">{p.status}</Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                 <Table>
+                   <TableHeader>
+                     <TableRow>
+                       <TableHead>{t('dashboard.recent.colTitle')}</TableHead>
+                       <TableHead>{t('playlists.childrenTitle')}</TableHead>
+                       <TableHead>{t('dashboard.recent.colStatus')}</TableHead>
+                     </TableRow>
+                   </TableHeader>
+                   <TableBody>
+                     {parents.length > 0 ? (
+                       parents.map((p) => (
+                         <TableRow
+                           key={p.id}
+                           className={selectedId === p.id ? 'bg-muted/60' : 'cursor-pointer'}
+                           onClick={() => setSelectedId(p.id)}
+                         >
+                           <TableCell className="max-w-[200px] truncate font-medium">
+                             {p.title || p.source_url}
+                           </TableCell>
+                           <TableCell className="text-muted-foreground tabular-nums">
+                             {p.total_count ?? p.job_count ?? 0}
+                           </TableCell>
+                           <TableCell>
+                             <Badge variant="secondary">{p.status}</Badge>
+                           </TableCell>
+                         </TableRow>
+                       ))
+                     ) : (
+                       <TableRow>
+                         <TableCell colSpan={999} className="p-4 text-center text-muted-foreground">
+                           <div className="flex flex-col items-center justify-center py-8">
+                             <Inbox className="h-8 w-8 text-muted-foreground mb-3" aria-hidden />
+                             <p className="text-sm">{t('table.noRecords')}</p>
+                           </div>
+                         </TableCell>
+                       </TableRow>
+                     )}
+                   </TableBody>
+                 </Table>
               </div>
             )}
           </CardContent>
@@ -145,32 +156,43 @@ export default function PlaylistsPage() {
               <p className="text-sm text-muted-foreground">{t('playlists.emptyChildren')}</p>
             ) : (
               <div className="-mx-1 max-h-[420px] overflow-auto rounded-lg border sm:mx-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>{t('dashboard.recent.colTitle')}</TableHead>
-                      <TableHead>{t('dashboard.recent.colSize')}</TableHead>
-                      <TableHead>{t('dashboard.recent.colStatus')}</TableHead>
-                      <TableHead className="w-[1%]" />
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {children.map((c) => (
-                      <TableRow key={c.id}>
-                        <TableCell className="max-w-[180px] truncate">{c.title || c.source_url || c.url}</TableCell>
-                        <TableCell className="text-muted-foreground">{formatBytes(c.file_size || 0)}</TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">{c.status}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Button variant="ghost" size="sm" asChild>
-                            <Link to={`/jobs/${c.id}`}>{t('playlists.details')}</Link>
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                 <Table>
+                   <TableHeader>
+                     <TableRow>
+                       <TableHead>{t('dashboard.recent.colTitle')}</TableHead>
+                       <TableHead>{t('dashboard.recent.colSize')}</TableHead>
+                       <TableHead>{t('dashboard.recent.colStatus')}</TableHead>
+                       <TableHead className="w-[1%]" />
+                     </TableRow>
+                   </TableHeader>
+                   <TableBody>
+                     {children.length > 0 ? (
+                       children.map((c) => (
+                         <TableRow key={c.id}>
+                           <TableCell className="max-w-[180px] truncate">{c.title || c.source_url || c.url}</TableCell>
+                           <TableCell className="text-muted-foreground">{formatBytes(c.file_size || 0)}</TableCell>
+                           <TableCell>
+                             <Badge variant="secondary">{c.status}</Badge>
+                           </TableCell>
+                           <TableCell>
+                             <Button variant="ghost" size="sm" asChild>
+                               <Link to={`/jobs/${c.id}`}>{t('playlists.details')}</Link>
+                             </Button>
+                           </TableCell>
+                         </TableRow>
+                       ))
+                     ) : (
+                       <TableRow>
+                         <TableCell colSpan={999} className="p-4 text-center text-muted-foreground">
+                           <div className="flex flex-col items-center justify-center py-8">
+                             <Inbox className="h-8 w-8 text-muted-foreground mb-3" aria-hidden />
+                             <p className="text-sm">{t('table.noRecords')}</p>
+                           </div>
+                         </TableCell>
+                       </TableRow>
+                     )}
+                   </TableBody>
+                 </Table>
               </div>
             )}
           </CardContent>

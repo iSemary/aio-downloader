@@ -1,8 +1,14 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
+  CheckCircle2,
+  Clock,
   Download,
   EllipsisVertical,
+  FileArchive,
+  FileAudio,
+  FileText,
+  Globe,
   HardDrive,
   History,
   LayoutDashboard,
@@ -12,6 +18,8 @@ import {
   LogOut,
   ScanSearch,
   Settings,
+  Timer,
+  Webcam,
 } from 'lucide-react'
 import { LogoMark } from '@/components/layout/LogoMark'
 import { useAuthStore } from '@/store/useAuthStore'
@@ -33,8 +41,28 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarSeparator,
   useSidebar,
 } from '@/components/ui/sidebar'
+
+const downloadItems = [
+  { to: '/downloads', key: 'all', icon: Download },
+  { to: '/downloads?filter=unfinished', key: 'unfinished', icon: Clock },
+  { to: '/downloads?filter=finished', key: 'finished', icon: CheckCircle2 },
+  { to: '/downloads?filter=scheduled', key: 'scheduled', icon: Timer },
+]
+
+const categoryItems = [
+  { to: '/downloads?category=compressed', key: 'compressed', icon: FileArchive },
+  { to: '/downloads?category=documents', key: 'documents', icon: FileText },
+  { to: '/downloads?category=media', key: 'media', icon: FileAudio },
+  { to: '/downloads?category=programs', key: 'programs', icon: Webcam },
+]
+
+const automationItems = [
+  { to: '/grabber', key: 'grabber', icon: ScanSearch },
+  { to: '/sites', key: 'sites', icon: Globe },
+]
 
 const navItems = [
   { to: '/dashboard', key: 'dashboard', icon: LayoutDashboard },
@@ -77,6 +105,60 @@ export function AppSidebar({ side = 'left', ...props }) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel>{t('layout.groupDownloads')}</SidebarGroupLabel>
+           <SidebarMenu>
+             {downloadItems.map(({ to, key, icon: Icon }) => (
+               <SidebarMenuItem key={to}>
+                 <SidebarMenuButton asChild tooltip={t(`layout.downloads.${key}`)} isActive={location.pathname + location.search === to}>
+                   <Link to={to}>
+                     <Icon />
+                     <span>{t(`layout.downloads.${key}`)}</span>
+                   </Link>
+                 </SidebarMenuButton>
+               </SidebarMenuItem>
+             ))}
+           </SidebarMenu>
+        </SidebarGroup>
+
+        <SidebarSeparator />
+
+        <SidebarGroup>
+          <SidebarGroupLabel>{t('layout.groupCategories')}</SidebarGroupLabel>
+           <SidebarMenu>
+             {categoryItems.map(({ to, key, icon: Icon }) => (
+               <SidebarMenuItem key={to}>
+                 <SidebarMenuButton asChild tooltip={t(`layout.categories.${key}`)} isActive={location.pathname + location.search === to}>
+                   <Link to={to}>
+                     <Icon />
+                     <span>{t(`layout.categories.${key}`)}</span>
+                   </Link>
+                 </SidebarMenuButton>
+               </SidebarMenuItem>
+             ))}
+           </SidebarMenu>
+        </SidebarGroup>
+
+        <SidebarSeparator />
+
+        <SidebarGroup>
+          <SidebarGroupLabel>{t('layout.groupAutomation')}</SidebarGroupLabel>
+          <SidebarMenu>
+            {automationItems.map(({ to, key, icon: Icon }) => (
+              <SidebarMenuItem key={to}>
+                <SidebarMenuButton asChild tooltip={t(`layout.automation.${key}`)} isActive={location.pathname === to}>
+                  <Link to={to}>
+                    <Icon />
+                    <span>{t(`layout.automation.${key}`)}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+        </SidebarGroup>
+
+        <SidebarSeparator />
+
         <SidebarGroup>
           <SidebarGroupLabel>{t('layout.groupMain')}</SidebarGroupLabel>
           <SidebarMenu>
