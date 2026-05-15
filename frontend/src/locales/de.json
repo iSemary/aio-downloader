@@ -1,0 +1,144 @@
+{
+  "layout": {
+    "appName": "AIO Downloader",
+    "tagline": "Medien-Downloads & Speicher",
+    "groupMain": "Anwendung",
+    "nav": {
+      "dashboard": "Dashboard",
+      "history": "Verlauf",
+      "storage": "Speicher",
+      "settings": "Einstellungen"
+    },
+    "toggleSidebar": "Seitenleiste umschalten",
+    "theme": "Design",
+    "language": "Sprache",
+    "logout": "Abmelden",
+    "userMenu": "Konto"
+  },
+  "dashboard": {
+    "pageTitle": "Dashboard",
+    "pageDescription": "Downloads, Speicher und Telegram-Zustellung im Blick.",
+    "newDownload": {
+      "title": "Neuer Download",
+      "description": "Link einfügen — wir erkennen die Plattform und zeigen nur passende Optionen. Celery + Redis für Live-Fortschritt.",
+      "placeholder": "https://…",
+      "urlLabel": "Link",
+      "analyzing": "Link wird geprüft…",
+      "analyzeFailedShort": "Dieser Link konnte nicht gelesen werden",
+      "analyzeFailedHint": "Sie können trotzdem «Download» versuchen — es werden Standardwerte genutzt.",
+      "outputOptions": "Ausgabeoptionen",
+      "outputFormat": "Ausgabeformat",
+      "videoQuality": "Videoqualität",
+      "qualityLabelVideo": "Auflösung / Qualität",
+      "qualityLabelAudio": "Audioqualität",
+      "kindVideo": "Video",
+      "kindAudio": "Audio",
+      "kindImage": "Bild oder Datei",
+      "playlistBadge": "Playlist · {{count}} Einträge",
+      "untitled": "Ohne Titel",
+      "duration": "Dauer",
+      "hintImage": "Keine Format- oder Qualitätswahl — wir laden an, wie es angeboten wird.",
+      "hintGeneric": "Diese Seite gilt nicht als streambares Video — wir nutzen einen einfachen Standard-Download.",
+      "emptyHint": "Oben eine URL einfügen, um Vorschau und Optionen zu sehen.",
+      "format_mp4": "MP4-Video",
+      "format_mp3": "MP3-Audio",
+      "format_webm": "WebM",
+      "quality_best": "Beste verfügbare Qualität",
+      "quality_1080p": "1080p",
+      "quality_720p": "720p",
+      "quality_480p": "480p",
+      "quality_audio_only": "Nur Audio",
+      "paste": "Einfügen",
+      "download": "Download"
+    },
+    "stats": {
+      "urlsFetched": "URLs abgerufen",
+      "downloaded": "Heruntergeladen",
+      "sentTelegram": "An Telegram gesendet",
+      "failed": "Fehlgeschlagen",
+      "gbStored": "GB gespeichert",
+      "sinceRefresh": "seit letztem Refresh",
+      "noChange": "Keine Änderung"
+    },
+    "activity": {
+      "title": "Aktivität",
+      "description": "Heruntergeladen vs. Telegram vs. fehlgeschlagen",
+      "range7d": "7T",
+      "range30d": "30T",
+      "rangeAll": "Alle",
+      "legendDownloaded": "Heruntergeladen",
+      "legendSentTg": "Telegram",
+      "legendFailed": "Fehlgeschlagen"
+    },
+    "donut": {
+      "title": "Speicher-Donut",
+      "description": "Nach Plattform (abgeschlossene Jobs)",
+      "total": "Gesamt"
+    },
+    "platformBars": {
+      "title": "Speicher nach Plattform",
+      "description": "GB pro Plattform"
+    },
+    "active": {
+      "title": "Aktive Downloads",
+      "description": "Live-Updates per WebSocket",
+      "empty": "Keine aktiven Jobs. Starten Sie oben einen Download.",
+      "pause": "Pause",
+      "pauseTitle": "Pause nicht unterstützt",
+      "stop": "Stopp",
+      "telegram": "Telegram"
+    },
+    "recent": {
+      "title": "Letzter Verlauf",
+      "description": "Neueste Jobs",
+      "colTitle": "Titel",
+      "colPlatform": "Plattform",
+      "colSize": "Größe",
+      "colStatus": "Status",
+      "colTg": "TG",
+      "yes": "Ja",
+      "no": "Nein"
+    },
+    "breakdown": {
+      "title": "Speicheraufschlüsselung",
+      "description": "GB pro Plattform",
+      "empty": "Noch keine abgeschlossenen Downloads.",
+      "loggedInAs": "Angemeldet als"
+    },
+    "toast": {
+      "loadFailed": "Dashboard-Daten konnten nicht geladen werden",
+      "started": "Download gestartet",
+      "startFailed": "Download konnte nicht gestartet werden",
+      "stopRequested": "Stopp angefordert",
+      "cancelFailed": "Abbrechen fehlgeschlagen",
+      "sentTg": "An Telegram gesendet",
+      "tgFailed": "Telegram-Versand fehlgeschlagen",
+      "clipboardDenied": "Zwischenablage-Zugriff verweigert"
+    }
+  },
+  "history": {
+    "pageTitle": "Verlauf",
+    "cardTitle": "Download-Verlauf",
+    "pageDescription": "Abgeschlossene und frühere Download-Jobs durchsuchen.",
+    "loadFailed": "Verlauf konnte nicht geladen werden"
+  },
+  "storage": {
+    "pageTitle": "Speicher",
+    "pageDescription": "Dateien auf der Festplatte und Gesamtnutzung.",
+    "loadFailed": "Speicher konnte nicht geladen werden",
+    "summaryTitle": "Übersicht",
+    "total": "Gesamt",
+    "files": "Dateien",
+    "filesHeading": "Dateien",
+    "refresh": "Aktualisieren"
+  },
+  "settings": {
+    "pageTitle": "Einstellungen",
+    "pageDescription": "Konto und Integrationen.",
+    "loadFailed": "Einstellungen konnten nicht geladen werden",
+    "accountCardTitle": "Konto",
+    "accountCardDescription": "Anzeigename, Standard-Downloads, Aufbewahrung und Passwort.",
+    "retentionLabel": "Dateien automatisch löschen nach (Tagen)",
+    "retentionDescription": "Abgeschlossene Downloads, die älter sind, werden nur von der Festplatte entfernt; Verlaufseinträge bleiben. 0 behält Dateien, bis Sie sie löschen."
+  }
+}

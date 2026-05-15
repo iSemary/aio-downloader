@@ -1,0 +1,144 @@
+{
+  "layout": {
+    "appName": "AIO Downloader",
+    "tagline": "تنزيل الوسائط والتخزين",
+    "groupMain": "التطبيق",
+    "nav": {
+      "dashboard": "لوحة التحكم",
+      "history": "السجل",
+      "storage": "التخزين",
+      "settings": "الإعدادات"
+    },
+    "toggleSidebar": "طي/إظهار الشريط الجانبي",
+    "theme": "المظهر",
+    "language": "اللغة",
+    "logout": "تسجيل الخروج",
+    "userMenu": "الحساب"
+  },
+  "dashboard": {
+    "pageTitle": "لوحة التحكم",
+    "pageDescription": "راقب التنزيلات والتخزين وإرسال تيليجرام.",
+    "newDownload": {
+      "title": "تنزيل جديد",
+      "description": "الصق رابطًا — نكتشف المنصة ونعرض الخيارات المناسبة فقط. يتطلب Celery وRedis للتقدم المباشر.",
+      "placeholder": "https://…",
+      "urlLabel": "الرابط",
+      "analyzing": "جارٍ فحص الرابط…",
+      "analyzeFailedShort": "تعذّر تحليل هذا الرابط",
+      "analyzeFailedHint": "يمكنك تجربة «تنزيل» على أي حال — ستُستخدم الإعدادات الافتراضية.",
+      "outputOptions": "خيارات الإخراج",
+      "outputFormat": "صيغة الإخراج",
+      "videoQuality": "جودة الفيديو",
+      "qualityLabelVideo": "الدقة / الجودة",
+      "qualityLabelAudio": "جودة الصوت",
+      "kindVideo": "فيديو",
+      "kindAudio": "صوت",
+      "kindImage": "صورة أو ملف",
+      "playlistBadge": "قائمة تشغيل · {{count}} عناصر",
+      "untitled": "بدون عنوان",
+      "duration": "المدة",
+      "hintImage": "لا خيارات صيغة أو جودة لهذا النوع — ننزّل الملف كما يُعرض.",
+      "hintGeneric": "هذه الصفحة لا تُعامل كفيديو قابل للبث — نستخدم تنزيلًا افتراضيًا بسيطًا.",
+      "emptyHint": "الصق رابطًا أعلاه لمعاينة المحتوى والخيارات المتاحة.",
+      "format_mp4": "فيديو MP4",
+      "format_mp3": "صوت MP3",
+      "format_webm": "WebM",
+      "quality_best": "أفضل جودة متاحة",
+      "quality_1080p": "1080p",
+      "quality_720p": "720p",
+      "quality_480p": "480p",
+      "quality_audio_only": "صوت فقط",
+      "paste": "لصق",
+      "download": "تنزيل"
+    },
+    "stats": {
+      "urlsFetched": "روابط تم جلبها",
+      "downloaded": "تم التنزيل",
+      "sentTelegram": "أُرسل لتيليجرام",
+      "failed": "فشل",
+      "gbStored": "غيغابايت مخزّنة",
+      "sinceRefresh": "منذ آخر تحديث",
+      "noChange": "لا تغيير"
+    },
+    "activity": {
+      "title": "النشاط",
+      "description": "تم التنزيل مقابل تيليجرام مقابل الفشل",
+      "range7d": "7 أيام",
+      "range30d": "30 يومًا",
+      "rangeAll": "الكل",
+      "legendDownloaded": "تم التنزيل",
+      "legendSentTg": "تيليجرام",
+      "legendFailed": "فشل"
+    },
+    "donut": {
+      "title": "توزيع التخزين",
+      "description": "حسب المنصة (مهام مكتملة)",
+      "total": "الإجمالي"
+    },
+    "platformBars": {
+      "title": "تخزين المنصات",
+      "description": "غيغابايت لكل منصة"
+    },
+    "active": {
+      "title": "التنزيلات النشطة",
+      "description": "تحديثات مباشرة عبر WebSocket",
+      "empty": "لا توجد مهام نشطة. ابدأ تنزيلًا أعلاه.",
+      "pause": "إيقاف مؤقت",
+      "pauseTitle": "الإيقاف المؤقت غير مدعوم",
+      "stop": "إيقاف",
+      "telegram": "تيليجرام"
+    },
+    "recent": {
+      "title": "السجل الأخير",
+      "description": "أحدث المهام",
+      "colTitle": "العنوان",
+      "colPlatform": "المنصة",
+      "colSize": "الحجم",
+      "colStatus": "الحالة",
+      "colTg": "تيليجرام",
+      "yes": "نعم",
+      "no": "لا"
+    },
+    "breakdown": {
+      "title": "تفصيل التخزين",
+      "description": "غيغابايت لكل منصة",
+      "empty": "لا توجد تنزيلات مكتملة بعد.",
+      "loggedInAs": "مسجّل الدخول كـ"
+    },
+    "toast": {
+      "loadFailed": "تعذّر تحميل بيانات لوحة التحكم",
+      "started": "بدأ التنزيل",
+      "startFailed": "تعذّر بدء التنزيل",
+      "stopRequested": "طُلب الإيقاف",
+      "cancelFailed": "فشل الإلغاء",
+      "sentTg": "أُرسل إلى تيليجرام",
+      "tgFailed": "فشل إرسال تيليجرام",
+      "clipboardDenied": "رفض المتصفح الوصول للحافظة"
+    }
+  },
+  "history": {
+    "pageTitle": "السجل",
+    "cardTitle": "سجل التنزيلات",
+    "pageDescription": "تصفّح المهام السابقة والمكتملة.",
+    "loadFailed": "تعذّر تحميل السجل"
+  },
+  "storage": {
+    "pageTitle": "التخزين",
+    "pageDescription": "الملفات على القرص وإجمالي الاستخدام.",
+    "loadFailed": "تعذّر تحميل التخزين",
+    "summaryTitle": "نظرة عامة",
+    "total": "الإجمالي",
+    "files": "ملفات",
+    "filesHeading": "الملفات",
+    "refresh": "تحديث"
+  },
+  "settings": {
+    "pageTitle": "الإعدادات",
+    "pageDescription": "الحساب والتكاملات.",
+    "loadFailed": "تعذّر تحميل الإعدادات",
+    "accountCardTitle": "الحساب",
+    "accountCardDescription": "الاسم الظاهر، إعدادات التحميل الافتراضية، احتفاظ التخزين، وكلمة المرور.",
+    "retentionLabel": "حذف الملفات تلقائياً بعد (أيام)",
+    "retentionDescription": "تُزال التنزيلات المكتملة الأقدم من القرص فقط؛ تبقى سجلات السجل. استخدم 0 للاحتفاظ بالملفات حتى تحذفها يدوياً."
+  }
+}

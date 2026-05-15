@@ -1,0 +1,144 @@
+{
+  "layout": {
+    "appName": "AIO Downloader",
+    "tagline": "Media downloads & storage",
+    "groupMain": "Application",
+    "nav": {
+      "dashboard": "Dashboard",
+      "history": "History",
+      "storage": "Storage",
+      "settings": "Settings"
+    },
+    "toggleSidebar": "Toggle sidebar",
+    "theme": "Theme",
+    "language": "Language",
+    "logout": "Log out",
+    "userMenu": "Account"
+  },
+  "dashboard": {
+    "pageTitle": "Dashboard",
+    "pageDescription": "Monitor downloads, storage, and Telegram delivery.",
+    "newDownload": {
+      "title": "New download",
+      "description": "Paste a link — we detect the platform and show only the options that apply. Celery + Redis power live progress.",
+      "placeholder": "https://…",
+      "urlLabel": "Link",
+      "analyzing": "Checking link…",
+      "analyzeFailedShort": "Could not read this link",
+      "analyzeFailedHint": "You can still try Download — defaults will be used.",
+      "outputOptions": "Output options",
+      "outputFormat": "Output format",
+      "videoQuality": "Video quality",
+      "qualityLabelVideo": "Resolution / quality",
+      "qualityLabelAudio": "Audio quality",
+      "kindVideo": "Video",
+      "kindAudio": "Audio",
+      "kindImage": "Image or file",
+      "playlistBadge": "Playlist · {{count}} items",
+      "untitled": "Untitled",
+      "duration": "Duration",
+      "hintImage": "No format or quality choices for this type — we download it as offered.",
+      "hintGeneric": "This page is not treated as streamable video — we use a simple default download.",
+      "emptyHint": "Paste a URL above to see a preview and available options.",
+      "format_mp4": "MP4 video",
+      "format_mp3": "MP3 audio",
+      "format_webm": "WebM",
+      "quality_best": "Best available",
+      "quality_1080p": "1080p",
+      "quality_720p": "720p",
+      "quality_480p": "480p",
+      "quality_audio_only": "Audio only",
+      "paste": "Paste",
+      "download": "Download"
+    },
+    "stats": {
+      "urlsFetched": "URLs fetched",
+      "downloaded": "Downloaded",
+      "sentTelegram": "Sent to Telegram",
+      "failed": "Failed",
+      "gbStored": "GB stored",
+      "sinceRefresh": "since last refresh",
+      "noChange": "No change"
+    },
+    "activity": {
+      "title": "Activity",
+      "description": "Downloaded vs Telegram vs failed",
+      "range7d": "7D",
+      "range30d": "30D",
+      "rangeAll": "All",
+      "legendDownloaded": "Downloaded",
+      "legendSentTg": "Sent TG",
+      "legendFailed": "Failed"
+    },
+    "donut": {
+      "title": "Storage donut",
+      "description": "By platform (completed jobs)",
+      "total": "Total"
+    },
+    "platformBars": {
+      "title": "Platform storage",
+      "description": "GB by platform"
+    },
+    "active": {
+      "title": "Active downloads",
+      "description": "Live updates via WebSocket",
+      "empty": "No active jobs. Start a download above.",
+      "pause": "Pause",
+      "pauseTitle": "Pause not supported",
+      "stop": "Stop",
+      "telegram": "Telegram"
+    },
+    "recent": {
+      "title": "Recent history",
+      "description": "Latest jobs",
+      "colTitle": "Title",
+      "colPlatform": "Platform",
+      "colSize": "Size",
+      "colStatus": "Status",
+      "colTg": "TG",
+      "yes": "Yes",
+      "no": "No"
+    },
+    "breakdown": {
+      "title": "Storage breakdown",
+      "description": "GB per platform",
+      "empty": "No completed downloads yet.",
+      "loggedInAs": "Logged in as"
+    },
+    "toast": {
+      "loadFailed": "Failed to load dashboard data",
+      "started": "Download started",
+      "startFailed": "Could not start download",
+      "stopRequested": "Stop requested",
+      "cancelFailed": "Cancel failed",
+      "sentTg": "Sent to Telegram",
+      "tgFailed": "Telegram send failed",
+      "clipboardDenied": "Clipboard permission denied"
+    }
+  },
+  "history": {
+    "pageTitle": "History",
+    "cardTitle": "Download history",
+    "pageDescription": "Browse completed and past download jobs.",
+    "loadFailed": "Failed to load history"
+  },
+  "storage": {
+    "pageTitle": "Storage",
+    "pageDescription": "Files on disk and usage totals.",
+    "loadFailed": "Failed to load storage",
+    "summaryTitle": "Overview",
+    "total": "Total",
+    "files": "Files",
+    "filesHeading": "Files",
+    "refresh": "Refresh"
+  },
+  "settings": {
+    "pageTitle": "Settings",
+    "pageDescription": "Account and integrations.",
+    "loadFailed": "Failed to load settings",
+    "accountCardTitle": "Account",
+    "accountCardDescription": "Display name, download defaults, storage retention, and password.",
+    "retentionLabel": "Auto-delete files after (days)",
+    "retentionDescription": "Completed downloads older than this are removed from disk only; history rows stay. Use 0 to keep files until you delete them."
+  }
+}
