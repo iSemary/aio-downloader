@@ -5,7 +5,7 @@ from pathlib import Path
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Count, Exists, Max, OuterRef, Q, Sum
-from django.db.models.functions import TruncDate
+from django.db.models.functions import Coalesce, TruncDate
 from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -13,17 +13,29 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.downloader.classification import classify_download
-from apps.downloader.models import DownloadJob
+from apps.downloader.models import (
+    ENGINE_HTTP,
+    ENGINE_YTDLP,
+    DownloadJob,
+    DownloadedFile,
+    DownloadJobMetrics,
+    JobEvent,
+    Playlist,
+)
 from apps.downloader.pagination import OptionalPageSizePagination
 from apps.downloader.serializers import (
     DownloadBulkSerializer,
     DownloadJobCreateSerializer,
     DownloadJobSerializer,
     DownloadReorderSerializer,
+    DownloadedFileSerializer,
+    JobEventSerializer,
+    PlaylistSerializer,
     UrlAnalyzeSerializer,
 )
 from apps.downloader.tasks import enqueue_download, enqueue_playlist_jobs
 from apps.downloader.ytdlp_utils import analyze_url, probe_url
+from apps.integrations.models import TelegramSend
 
 
 def _next_queue_order(user) -> int:
@@ -42,6 +54,14 @@ def _map_analysis_media_kind(analysis: dict) -> str:
     return mapping.get(mk, DownloadJob.MediaKind.OTHER)
 
 
+def _job_queryset_for(user):
+    return (
+        DownloadJob.objects.filter(user=user)
+        .select_related("metrics", "playlist")
+        .prefetch_related("files", "telegram_sends")
+    )
+
+
 class DownloadJobViewSet(viewsets.ModelViewSet):
     lookup_field = "id"
     lookup_value_regex = r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
@@ -49,23 +69,18 @@ class DownloadJobViewSet(viewsets.ModelViewSet):
     pagination_class = OptionalPageSizePagination
 
     def get_queryset(self):
-        qs = DownloadJob.objects.filter(user=self.request.user)
+        qs = _job_queryset_for(self.request.user)
         st = self.request.query_params.get("status")
         if st:
             qs = qs.filter(status=st)
 
-        playlist_parent = self.request.query_params.get("playlist_parent")
-        if playlist_parent:
-            qs = qs.filter(playlist_parent_id=playlist_parent)
+        playlist_id = self.request.query_params.get("playlist_parent") or self.request.query_params.get("playlist")
+        if playlist_id:
+            qs = qs.filter(playlist_id=playlist_id)
 
         roots_only = self.request.query_params.get("roots_only")
         if roots_only and str(roots_only).lower() in ("1", "true", "yes"):
-            qs = qs.filter(playlist_parent__isnull=True)
-
-        ppo = self.request.query_params.get("playlist_parents_only")
-        if ppo and str(ppo).lower() in ("1", "true", "yes"):
-            has_entry = DownloadJob.objects.filter(playlist_parent_id=OuterRef("pk"))
-            qs = qs.filter(Exists(has_entry))
+            qs = qs.filter(playlist__isnull=True)
 
         sort = self.request.query_params.get("sort", "recent")
         if sort == "queue":
@@ -80,27 +95,29 @@ class DownloadJobViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         ser = self.get_serializer(data=request.data)
         ser.is_valid(raise_exception=True)
-        url = ser.validated_data["url"].strip()
+        url = ser.validated_data["source_url"].strip()
         fmt = ser.validated_data.get("format") or "mp4"
         quality = ser.validated_data.get("quality") or "best"
         http_connections = int(ser.validated_data.get("http_connections") or 1)
         http_connections = max(1, min(8, http_connections))
+        priority = int(ser.validated_data.get("priority") or 0)
 
         cf = classify_download(url)
         qo = _next_queue_order(request.user)
 
-        if cf["engine"] == DownloadJob.Engine.HTTP:
+        if cf["engine"] == ENGINE_HTTP:
             job = DownloadJob.objects.create(
                 user=request.user,
-                url=url,
+                source_url=url,
                 title=(cf.get("suggested_title") or url)[:512],
                 platform="http",
                 format=fmt,
                 quality=quality,
-                engine=DownloadJob.Engine.HTTP,
+                engine=ENGINE_HTTP,
                 media_kind=cf["media_kind"],
                 http_connections=http_connections,
                 queue_order=qo,
+                priority=priority,
             )
             enqueue_download.delay(str(job.id))
             return Response(DownloadJobSerializer(job).data, status=status.HTTP_201_CREATED)
@@ -109,53 +126,54 @@ class DownloadJobViewSet(viewsets.ModelViewSet):
         entries = probe["entries"]
 
         if probe.get("is_playlist") and len(entries) > 1:
-            parent = DownloadJob.objects.create(
+            playlist = Playlist.objects.create(
                 user=request.user,
-                url=url,
+                source_url=url,
                 title=(probe.get("title") or "Playlist")[:512],
                 platform=entries[0].get("platform") or "youtube",
-                format=fmt,
-                quality=quality,
-                status=DownloadJob.Status.PROCESSING,
-                engine=DownloadJob.Engine.YTDLP,
-                media_kind=DownloadJob.MediaKind.VIDEO,
-                queue_order=qo,
+                total_count=len(entries),
+                status=Playlist.Status.PENDING,
             )
-            enqueue_playlist_jobs.delay(str(parent.id), entries)
-            return Response(DownloadJobSerializer(parent).data, status=status.HTTP_201_CREATED)
+            enqueue_playlist_jobs.delay(str(playlist.id), entries, fmt, quality)
+            playlist.refresh_from_db()
+            return Response(PlaylistSerializer(playlist).data, status=status.HTTP_201_CREATED)
 
         e = entries[0]
         entry_url = e["url"]
         entry_cf = classify_download(entry_url)
         analysis = analyze_url(entry_url)
 
-        if entry_cf["engine"] == DownloadJob.Engine.HTTP:
+        if entry_cf["engine"] == ENGINE_HTTP:
             job = DownloadJob.objects.create(
                 user=request.user,
-                url=entry_url,
+                source_url=entry_url,
                 title=(entry_cf.get("suggested_title") or e.get("title") or probe.get("title") or "")[:512],
                 platform="http",
                 format=fmt,
                 quality=quality,
-                engine=DownloadJob.Engine.HTTP,
+                engine=ENGINE_HTTP,
                 media_kind=entry_cf["media_kind"],
                 http_connections=http_connections,
                 queue_order=qo,
+                priority=priority,
             )
             enqueue_download.delay(str(job.id))
             return Response(DownloadJobSerializer(job).data, status=status.HTTP_201_CREATED)
 
         job = DownloadJob.objects.create(
             user=request.user,
-            url=entry_url,
+            source_url=entry_url,
             title=(e.get("title") or probe.get("title") or "")[:512],
             platform=e.get("platform") or "generic",
+            thumbnail_url=(analysis.get("thumbnail") or "")[:2048] if analysis.get("thumbnail") else "",
+            duration_seconds=analysis.get("duration_seconds"),
             format=fmt,
             quality=quality,
-            engine=DownloadJob.Engine.YTDLP,
+            engine=ENGINE_YTDLP,
             media_kind=_map_analysis_media_kind(analysis),
             http_connections=http_connections,
             queue_order=qo,
+            priority=priority,
         )
         enqueue_download.delay(str(job.id))
         return Response(DownloadJobSerializer(job).data, status=status.HTTP_201_CREATED)
@@ -163,6 +181,11 @@ class DownloadJobViewSet(viewsets.ModelViewSet):
     def perform_destroy(self, instance):
         instance.status = DownloadJob.Status.CANCELLED
         instance.save(update_fields=["status", "updated_at"])
+        JobEvent.objects.create(
+            job=instance,
+            event_type=JobEvent.EventType.CANCELLED,
+            message="Cancelled by user",
+        )
         if instance.celery_task_id:
             from celery.result import AsyncResult
 
@@ -173,41 +196,47 @@ class DownloadJobViewSet(viewsets.ModelViewSet):
         job = self.get_object()
         if job.status not in (DownloadJob.Status.ERROR, DownloadJob.Status.CANCELLED):
             return Response({"detail": "Only failed or cancelled jobs can be retried."}, status=400)
-        if job.engine == DownloadJob.Engine.HTTP:
+        metrics, _ = DownloadJobMetrics.objects.get_or_create(job=job)
+        if job.engine == ENGINE_HTTP:
             pct = 0
-            if job.expected_size and job.bytes_downloaded:
-                pct = min(99, int(job.bytes_downloaded * 100 / job.expected_size))
+            if metrics.bytes_total and metrics.bytes_downloaded:
+                pct = min(99, int(metrics.bytes_downloaded * 100 / metrics.bytes_total))
             DownloadJob.objects.filter(pk=job.pk).update(
                 status=DownloadJob.Status.PENDING,
-                progress=pct,
                 error_message=None,
-                speed="",
-                eta="",
                 completed_at=None,
-                avg_download_speed_bps=None,
+            )
+            DownloadJobMetrics.objects.filter(pk=metrics.pk).update(
+                progress_pct=pct,
+                last_speed_str="",
+                last_eta_str="",
+                avg_speed_bps=None,
             )
         else:
             DownloadJob.objects.filter(pk=job.pk).update(
                 status=DownloadJob.Status.PENDING,
-                progress=0,
                 error_message=None,
-                speed="",
-                eta="",
-                file_path="",
-                file_size=0,
-                bytes_downloaded=0,
-                expected_size=0,
                 completed_at=None,
-                avg_download_speed_bps=None,
             )
+            DownloadJobMetrics.objects.filter(pk=metrics.pk).update(
+                progress_pct=0,
+                last_speed_str="",
+                last_eta_str="",
+                bytes_downloaded=0,
+                bytes_total=0,
+                avg_speed_bps=None,
+                partial_rel_path="",
+            )
+            job.files.all().delete()
         job.refresh_from_db()
+        JobEvent.objects.create(job=job, event_type=JobEvent.EventType.RETRIED, message="Retry requested")
         enqueue_download.delay(str(job.id))
         return Response(DownloadJobSerializer(job).data)
 
     @action(detail=True, methods=["post"], url_path="pause")
     def pause(self, request, *args, **kwargs):
         job = self.get_object()
-        if job.engine != DownloadJob.Engine.HTTP:
+        if job.engine != ENGINE_HTTP:
             return Response(
                 {"detail": "Pause is only supported for HTTP downloads."},
                 status=status.HTTP_501_NOT_IMPLEMENTED,
@@ -224,7 +253,7 @@ class DownloadJobViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"], url_path="resume")
     def resume(self, request, *args, **kwargs):
         job = self.get_object()
-        if job.engine != DownloadJob.Engine.HTTP:
+        if job.engine != ENGINE_HTTP:
             return Response(
                 {"detail": "Resume is only supported for HTTP downloads."},
                 status=status.HTTP_501_NOT_IMPLEMENTED,
@@ -263,15 +292,15 @@ class DownloadJobViewSet(viewsets.ModelViewSet):
             try:
                 cf = classify_download(url)
                 qo = _next_queue_order(request.user)
-                if cf["engine"] == DownloadJob.Engine.HTTP:
+                if cf["engine"] == ENGINE_HTTP:
                     job = DownloadJob.objects.create(
                         user=request.user,
-                        url=url,
+                        source_url=url,
                         title=(cf.get("suggested_title") or url)[:512],
                         platform="http",
                         format=fmt,
                         quality=quality,
-                        engine=DownloadJob.Engine.HTTP,
+                        engine=ENGINE_HTTP,
                         media_kind=cf["media_kind"],
                         http_connections=http_connections,
                         queue_order=qo,
@@ -282,36 +311,33 @@ class DownloadJobViewSet(viewsets.ModelViewSet):
                 probe = probe_url(url)
                 entries = probe["entries"]
                 if probe.get("is_playlist") and len(entries) > 1:
-                    parent = DownloadJob.objects.create(
+                    playlist = Playlist.objects.create(
                         user=request.user,
-                        url=url,
+                        source_url=url,
                         title=(probe.get("title") or "Playlist")[:512],
                         platform=entries[0].get("platform") or "youtube",
-                        format=fmt,
-                        quality=quality,
-                        status=DownloadJob.Status.PROCESSING,
-                        engine=DownloadJob.Engine.YTDLP,
-                        media_kind=DownloadJob.MediaKind.VIDEO,
-                        queue_order=qo,
+                        total_count=len(entries),
+                        status=Playlist.Status.PENDING,
                     )
-                    enqueue_playlist_jobs.delay(str(parent.id), entries)
-                    created.append(DownloadJobSerializer(parent).data)
+                    enqueue_playlist_jobs.delay(str(playlist.id), entries, fmt, quality)
+                    playlist.refresh_from_db()
+                    created.append({"kind": "playlist", **PlaylistSerializer(playlist).data})
                     continue
                 e = entries[0]
                 entry_url = e["url"]
                 entry_cf = classify_download(entry_url)
                 analysis = analyze_url(entry_url)
-                if entry_cf["engine"] == DownloadJob.Engine.HTTP:
+                if entry_cf["engine"] == ENGINE_HTTP:
                     job = DownloadJob.objects.create(
                         user=request.user,
-                        url=entry_url,
+                        source_url=entry_url,
                         title=(entry_cf.get("suggested_title") or e.get("title") or probe.get("title") or "")[
                             :512
                         ],
                         platform="http",
                         format=fmt,
                         quality=quality,
-                        engine=DownloadJob.Engine.HTTP,
+                        engine=ENGINE_HTTP,
                         media_kind=entry_cf["media_kind"],
                         http_connections=http_connections,
                         queue_order=qo,
@@ -321,12 +347,14 @@ class DownloadJobViewSet(viewsets.ModelViewSet):
                     continue
                 job = DownloadJob.objects.create(
                     user=request.user,
-                    url=entry_url,
+                    source_url=entry_url,
                     title=(e.get("title") or probe.get("title") or "")[:512],
                     platform=e.get("platform") or "generic",
+                    thumbnail_url=(analysis.get("thumbnail") or "")[:2048] if analysis.get("thumbnail") else "",
+                    duration_seconds=analysis.get("duration_seconds"),
                     format=fmt,
                     quality=quality,
-                    engine=DownloadJob.Engine.YTDLP,
+                    engine=ENGINE_YTDLP,
                     media_kind=_map_analysis_media_kind(analysis),
                     http_connections=http_connections,
                     queue_order=qo,
@@ -352,6 +380,41 @@ class DownloadJobViewSet(viewsets.ModelViewSet):
         return Response({"ok": True, "order": [str(x) for x in unique]})
 
 
+class PlaylistViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = PlaylistSerializer
+    pagination_class = OptionalPageSizePagination
+
+    def get_queryset(self):
+        return Playlist.objects.filter(user=self.request.user).order_by("-created_at")
+
+
+class DownloadedFileViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = DownloadedFileSerializer
+    lookup_field = "id"
+    pagination_class = OptionalPageSizePagination
+
+    def get_queryset(self):
+        qs = DownloadedFile.objects.filter(user=self.request.user)
+        if self.request.query_params.get("include_deleted", "").lower() not in ("1", "true", "yes"):
+            qs = qs.filter(is_deleted=False)
+        job_id = self.request.query_params.get("job")
+        if job_id:
+            qs = qs.filter(job_id=job_id)
+        return qs.select_related("job").order_by("-created_at")
+
+
+class JobEventViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = JobEventSerializer
+    pagination_class = OptionalPageSizePagination
+
+    def get_queryset(self):
+        qs = JobEvent.objects.filter(job__user=self.request.user)
+        job_id = self.request.query_params.get("job")
+        if job_id:
+            qs = qs.filter(job_id=job_id)
+        return qs.select_related("job").order_by("-created_at")
+
+
 class DownloadUrlAnalyzeView(APIView):
     """Probe a URL with yt-dlp and return UI hints (platform, media kind, which controls to show)."""
 
@@ -372,8 +435,13 @@ class DownloadStatsView(APIView):
         total = qs.count()
         success = qs.filter(status=DownloadJob.Status.DONE).count()
         failed = qs.filter(status=DownloadJob.Status.ERROR).count()
-        tg = qs.filter(sent_to_telegram=True).count()
-        gb = (qs.filter(status=DownloadJob.Status.DONE).aggregate(s=Sum("file_size"))["s"] or 0) / (1024**3)
+        tg = TelegramSend.objects.filter(job__user=request.user, status=TelegramSend.Status.SENT).count()
+        gb = (
+            DownloadedFile.objects.filter(user=request.user, is_deleted=False).aggregate(s=Sum("file_size_bytes"))[
+                "s"
+            ]
+            or 0
+        ) / (1024**3)
         return Response(
             {
                 "urls_fetched": total,
@@ -405,7 +473,7 @@ class DownloadTimeseriesView(APIView):
             .values("day")
             .annotate(
                 downloaded=Count("id", filter=Q(status=DownloadJob.Status.DONE)),
-                sent_tg=Count("id", filter=Q(sent_to_telegram=True)),
+                sent_tg=Count("telegram_sends", filter=Q(telegram_sends__status=TelegramSend.Status.SENT)),
                 failed=Count("id", filter=Q(status=DownloadJob.Status.ERROR)),
             )
             .order_by("day")
@@ -416,13 +484,20 @@ class DownloadTimeseriesView(APIView):
 class PlatformBreakdownView(APIView):
     def get(self, request):
         qs = (
-            DownloadJob.objects.filter(user=request.user, status=DownloadJob.Status.DONE)
-            .values("platform")
-            .annotate(total_bytes=Sum("file_size"), count=Count("id"))
+            DownloadedFile.objects.filter(user=request.user, is_deleted=False, job__status=DownloadJob.Status.DONE)
+            .values("job__platform")
+            .annotate(total_bytes=Sum("file_size_bytes"), count=Count("id"))
         )
         rows = []
         for row in qs:
-            rows.append({**row, "bytes": row["total_bytes"]})
+            rows.append(
+                {
+                    "platform": row.get("job__platform") or "generic",
+                    "total_bytes": row["total_bytes"],
+                    "count": row["count"],
+                    "bytes": row["total_bytes"],
+                }
+            )
         return Response(rows)
 
 
@@ -468,7 +543,7 @@ class DownloadDashboardView(APIView):
             next_pending = {
                 "id": str(next_row["id"]),
                 "title": (next_row.get("title") or "")[:200],
-                "platform": (next_row.get("platform") or "")[:64] or "generic",
+                "platform": (next_row.get("platform") or "")[:128] or "generic",
             }
 
         done_recent = list(
@@ -482,19 +557,36 @@ class DownloadDashboardView(APIView):
             avg_secs = acc / len(done_recent)
             queue_clear_eta_seconds = int(pending_count * avg_secs)
 
-        today_qs = qs.filter(
+        done_job_ids_today = qs.filter(
             status=DownloadJob.Status.DONE,
             completed_at__gte=today_start,
             completed_at__lt=today_end,
+        ).values_list("id", flat=True)
+        today_files = DownloadedFile.objects.filter(
+            user=user, is_deleted=False, job_id__in=done_job_ids_today
+        ).count()
+        today_bytes = (
+            DownloadedFile.objects.filter(user=user, is_deleted=False, job_id__in=done_job_ids_today).aggregate(
+                s=Sum("file_size_bytes")
+            )["s"]
+            or 0
         )
-        today_files = today_qs.count()
-        today_bytes = today_qs.aggregate(s=Sum("file_size"))["s"] or 0
 
-        telegram_pending = qs.filter(status=DownloadJob.Status.DONE, sent_to_telegram=False).count()
-        telegram_sent_today = qs.filter(
-            sent_to_telegram=True,
-            telegram_sent_at__gte=today_start,
-            telegram_sent_at__lt=today_end,
+        has_sent = TelegramSend.objects.filter(
+            job_id=OuterRef("pk"),
+            status=TelegramSend.Status.SENT,
+        )
+        telegram_pending = (
+            qs.filter(status=DownloadJob.Status.DONE)
+            .annotate(_sent=Exists(has_sent))
+            .filter(_sent=False)
+            .count()
+        )
+        telegram_sent_today = TelegramSend.objects.filter(
+            job__user=user,
+            status=TelegramSend.Status.SENT,
+            sent_at__gte=today_start,
+            sent_at__lt=today_end,
         ).count()
 
         seven_start = now - timedelta(days=7)
@@ -527,21 +619,35 @@ class DownloadDashboardView(APIView):
         except OSError:
             disk = {"used_bytes": 0, "total_bytes": 0, "free_bytes": 0}
 
-        largest = (
-            qs.filter(status=DownloadJob.Status.DONE, file_size__gt=0)
-            .order_by("-file_size")
-            .values("id", "title", "file_size", "platform")
+        largest_row = (
+            DownloadedFile.objects.filter(user=user, is_deleted=False)
+            .select_related("job")
+            .order_by("-file_size_bytes")
             .first()
         )
+        largest = None
+        if largest_row and largest_row.job_id:
+            largest = {
+                "id": str(largest_row.job_id),
+                "title": largest_row.job.title,
+                "file_size": largest_row.file_size_bytes,
+                "platform": largest_row.job.platform,
+            }
 
-        platforms = [
-            {**row, "bytes": row["total_bytes"]}
-            for row in (
-                DownloadJob.objects.filter(user=user, status=DownloadJob.Status.DONE)
-                .values("platform")
-                .annotate(total_bytes=Sum("file_size"), count=Count("id"))
+        platforms = []
+        for row in (
+            DownloadedFile.objects.filter(user=user, is_deleted=False, job__status=DownloadJob.Status.DONE)
+            .values("job__platform")
+            .annotate(total_bytes=Coalesce(Sum("file_size_bytes"), 0), count=Count("id"))
+        ):
+            platforms.append(
+                {
+                    "platform": row.get("job__platform") or "generic",
+                    "total_bytes": row["total_bytes"],
+                    "count": row["count"],
+                    "bytes": row["total_bytes"],
+                }
             )
-        ]
 
         heat_start_date = local_date - timedelta(days=370)
         heat_start_aware = timezone.make_aware(datetime.combine(heat_start_date, time.min), tz)
@@ -566,11 +672,12 @@ class DownloadDashboardView(APIView):
 
         thirty = now - timedelta(days=30)
         speeds = list(
-            qs.filter(
-                status=DownloadJob.Status.DONE,
-                completed_at__gte=thirty,
-                avg_download_speed_bps__isnull=False,
-            ).values_list("avg_download_speed_bps", flat=True)
+            DownloadJobMetrics.objects.filter(
+                job__user=user,
+                job__status=DownloadJob.Status.DONE,
+                job__completed_at__gte=thirty,
+                avg_speed_bps__isnull=False,
+            ).values_list("avg_speed_bps", flat=True)
         )
         edges = [
             (0, 256 * 1024, "<256 KB/s"),

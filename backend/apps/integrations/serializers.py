@@ -3,9 +3,28 @@ from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 
 from apps.integrations.crypto import encrypt_str
-from apps.integrations.models import TelegramConfig
+from apps.integrations.models import TelegramConfig, TelegramSend
 
 User = get_user_model()
+
+
+class TelegramSendSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TelegramSend
+        fields = (
+            "id",
+            "config",
+            "file",
+            "job",
+            "status",
+            "telegram_message_id",
+            "telegram_file_id",
+            "error_message",
+            "attempt_count",
+            "sent_at",
+            "created_at",
+        )
+        read_only_fields = fields
 
 
 class TelegramConfigSerializer(serializers.ModelSerializer):
@@ -21,10 +40,17 @@ class TelegramConfigSerializer(serializers.ModelSerializer):
             "bot_token_masked",
             "bot_configured",
             "chat_id",
+            "chat_username",
+            "chat_type",
             "auto_send",
             "enabled",
+            "max_file_size_mb",
+            "use_local_bot_api",
+            "local_bot_api_url",
+            "created_at",
+            "updated_at",
         )
-        read_only_fields = ("id", "bot_token_masked", "bot_configured")
+        read_only_fields = ("id", "bot_token_masked", "bot_configured", "created_at", "updated_at")
 
     def get_bot_configured(self, obj: TelegramConfig) -> bool:
         from apps.integrations.telegram import owner_has_bot_token

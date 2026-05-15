@@ -29,11 +29,14 @@ export function useJobWebSocket(jobId) {
         try {
           const msg = JSON.parse(ev.data)
           if (msg.type === 'progress') {
+            const pct = msg.percent ?? msg.progress_pct ?? 0
+            const speed = msg.speed ?? msg.speed_str ?? ''
+            const eta = msg.eta ?? msg.eta_str ?? ''
             update(jobId, {
               status: 'downloading',
-              progress: msg.percent,
-              speed: msg.speed,
-              eta: msg.eta,
+              progress: pct,
+              speed,
+              eta,
               bytes_downloaded: msg.bytes_downloaded,
               expected_size: msg.expected_size,
             })

@@ -67,8 +67,8 @@
     "pageDescription": "Downloads, Speicher und Telegram-Zustellung im Blick.",
     "newDownload": {
       "title": "Neuer Download",
-      "description": "Link einfügen — wir erkennen die Plattform und zeigen nur passende Optionen. Celery + Redis für Live-Fortschritt.",
-      "placeholder": "https://…",
+      "description": "Fügen Sie einen Link von YouTube, TikTok, Instagram oder fast überall ein. Wir erkennen die Quelle, zeigen nur passende Optionen und der Fortschritt aktualisiert sich live.",
+      "placeholder": "Video-, Playlist- oder Dateilink hier einfügen",
       "urlLabel": "Link",
       "analyzing": "Link wird geprüft…",
       "analyzeFailedShort": "Dieser Link konnte nicht gelesen werden",

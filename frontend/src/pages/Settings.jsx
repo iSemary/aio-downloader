@@ -44,7 +44,7 @@ export default function SettingsPage() {
       setTg((t) => ({
         ...t,
         chat_id: tc.data.chat_id || '',
-        auto_send: !!tc.data.auto_send,
+        auto_send: !!me.data.preferences?.auto_send_telegram,
         enabled: tc.data.enabled !== false,
         bot_configured: !!tc.data.bot_configured,
       }))
@@ -63,12 +63,12 @@ export default function SettingsPage() {
       const payload = {
         chat_id: tg.chat_id,
         enabled: tg.enabled,
-        auto_send: tg.auto_send,
       }
       if (isOwner && tg.bot_token) {
         payload.bot_token = tg.bot_token
       }
       await api.patch('/integrations/telegram/', payload)
+      await api.patch('/auth/preferences/', { auto_send_telegram: tg.auto_send })
       toast.success('Telegram settings saved')
       setTg((t) => ({ ...t, bot_token: '' }))
       load()
@@ -93,9 +93,15 @@ export default function SettingsPage() {
       const { data } = await api.patch('/auth/me/', {
         first_name: user.first_name,
         last_name: user.last_name,
-        default_format: user.default_format,
-        default_quality: user.default_quality,
-        storage_retention_days: user.storage_retention_days ?? 7,
+        preferences: {
+          default_format: user?.preferences?.default_format ?? 'mp4',
+          default_quality: user?.preferences?.default_quality ?? 'best',
+          default_engine: user?.preferences?.default_engine ?? 'yt-dlp',
+          storage_retention_days: user?.preferences?.storage_retention_days ?? 7,
+          auto_send_telegram: user?.preferences?.auto_send_telegram ?? false,
+          notify_on_complete: user?.preferences?.notify_on_complete ?? true,
+          timezone: user?.preferences?.timezone ?? 'UTC',
+        },
       })
       setUser(data)
       toast.success('Preferences saved')
@@ -263,7 +269,14 @@ export default function SettingsPage() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="grid gap-2">
                   <Label>{t('settings.defaultFormat')}</Label>
-                  <Select value={user?.default_format || 'mp4'} onValueChange={(v) => setUser({ default_format: v })}>
+                  <Select
+                    value={user?.preferences?.default_format || 'mp4'}
+                    onValueChange={(v) =>
+                      setUser({
+                        preferences: { ...user?.preferences, default_format: v },
+                      })
+                    }
+                  >
                     <SelectTrigger className="min-h-11 w-full">
                       <SelectValue placeholder={t('settings.defaultFormat')} />
                     </SelectTrigger>
@@ -276,7 +289,14 @@ export default function SettingsPage() {
                 </div>
                 <div className="grid gap-2">
                   <Label>{t('settings.defaultQuality')}</Label>
-                  <Select value={user?.default_quality || 'best'} onValueChange={(v) => setUser({ default_quality: v })}>
+                  <Select
+                    value={user?.preferences?.default_quality || 'best'}
+                    onValueChange={(v) =>
+                      setUser({
+                        preferences: { ...user?.preferences, default_quality: v },
+                      })
+                    }
+                  >
                     <SelectTrigger className="min-h-11 w-full">
                       <SelectValue placeholder={t('settings.defaultQuality')} />
                     </SelectTrigger>
@@ -303,11 +323,16 @@ export default function SettingsPage() {
                     min={0}
                     max={3650}
                     inputMode="numeric"
-                    value={user?.storage_retention_days ?? 7}
+                    value={user?.preferences?.storage_retention_days ?? 7}
                     onChange={(e) => {
                       const v = parseInt(e.target.value, 10)
                       setUser({
-                        storage_retention_days: Number.isFinite(v) ? Math.min(3650, Math.max(0, v)) : 7,
+                        preferences: {
+                          ...user?.preferences,
+                          storage_retention_days: Number.isFinite(v)
+                            ? Math.min(3650, Math.max(0, v))
+                            : 7,
+                        },
                       })
                     }}
                   />

@@ -7,10 +7,16 @@ from .views import (
     DownloadStatsView,
     DownloadTimeseriesView,
     DownloadUrlAnalyzeView,
+    DownloadedFileViewSet,
+    JobEventViewSet,
     PlatformBreakdownView,
+    PlaylistViewSet,
 )
 
 router = DefaultRouter()
+router.register("playlists", PlaylistViewSet, basename="playlist")
+router.register("files", DownloadedFileViewSet, basename="downloaded-file")
+router.register("events", JobEventViewSet, basename="job-event")
 router.register("", DownloadJobViewSet, basename="download")
 
 urlpatterns = [

@@ -22,7 +22,7 @@ export function sumActiveDownloadSpeedBps(activeJobs) {
   let sum = 0
   for (const j of Object.values(activeJobs)) {
     if (j?.status !== 'downloading') continue
-    const b = parseSpeedStrToBps(j.speed)
+    const b = parseSpeedStrToBps(j.speed ?? j.metrics?.last_speed_str)
     if (b != null) sum += b
   }
   return sum

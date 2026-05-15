@@ -53,7 +53,7 @@ export default function HistoryPage() {
   }, [])
 
   const columns = [
-    { accessorKey: 'title', header: t('dashboard.recent.colTitle'), cell: (info) => info.getValue() || info.row.original.url },
+    { accessorKey: 'title', header: t('dashboard.recent.colTitle'), cell: (info) => info.getValue() || info.row.original.source_url || info.row.original.url },
     { accessorKey: 'platform', header: t('dashboard.recent.colPlatform') },
     {
       accessorKey: 'file_size',

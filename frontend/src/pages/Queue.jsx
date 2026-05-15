@@ -69,7 +69,7 @@ function SortableQueueRow({ id, label, subtitle }) {
   )
 }
 
-const ACTIVE = new Set(['pending', 'downloading', 'processing', 'paused'])
+const ACTIVE = new Set(['pending', 'queued', 'downloading', 'processing', 'paused'])
 
 export default function QueuePage() {
   const { t } = useTranslation()
@@ -263,15 +263,15 @@ export default function QueuePage() {
                         )}
                       >
                         <span className="w-[100px] shrink-0 truncate font-mono text-xs text-muted-foreground">
-                          {(job.title || job.url || '').slice(0, 18)}
+                          {(job.title || job.source_url || job.url || '').slice(0, 18)}
                         </span>
                         <Badge variant="outline" className="shrink-0 capitalize">
-                          {job.engine || 'ytdlp'}
+                          {(job.engine || 'yt-dlp').replace('yt-dlp', 'ytdlp')}
                         </Badge>
                         <Badge variant="secondary" className="shrink-0 capitalize">
                           {job.media_kind || 'other'}
                         </Badge>
-                        <span className="min-w-0 flex-1 truncate">{job.title || job.url}</span>
+                        <span className="min-w-0 flex-1 truncate">{job.title || job.source_url || job.url}</span>
                         <span className="w-16 shrink-0 text-end text-xs">{job.progress ?? 0}%</span>
                         <span className="hidden w-24 shrink-0 text-end text-xs text-muted-foreground sm:block">
                           {formatBytes(job.bytes_downloaded || job.file_size || 0)}
@@ -296,7 +296,9 @@ export default function QueuePage() {
               <Card>
               <CardHeader>
                 <CardTitle className="line-clamp-2 text-base">{selected.title || t('queue.untitled')}</CardTitle>
-                <CardDescription className="break-all font-mono text-xs">{selected.url}</CardDescription>
+                <CardDescription className="break-all font-mono text-xs">
+                  {selected.source_url || selected.url}
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
                 <div className="flex flex-wrap gap-2">
@@ -487,7 +489,7 @@ export default function QueuePage() {
                       <SortableQueueRow
                         key={id}
                         id={id}
-                        label={job?.title || job?.url || id}
+                        label={job?.title || job?.source_url || job?.url || id}
                         subtitle={job?.status}
                       />
                     )

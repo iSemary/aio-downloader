@@ -67,8 +67,8 @@
     "pageDescription": "Monitor downloads, storage, and Telegram delivery.",
     "newDownload": {
       "title": "New download",
-      "description": "Paste a link — we detect the platform and show only the options that apply. Celery + Redis power live progress.",
-      "placeholder": "https://…",
+      "description": "Paste a link from YouTube, TikTok, Instagram, or almost anywhere else. We detect the source, show the choices that actually apply, and you can watch progress update in real time.",
+      "placeholder": "Paste a video, playlist, or file link here",
       "urlLabel": "Link",
       "analyzing": "Checking link…",
       "analyzeFailedShort": "Could not read this link",

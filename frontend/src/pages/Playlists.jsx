@@ -21,9 +21,7 @@ export default function PlaylistsPage() {
   const loadParents = useCallback(async () => {
     setLoadingParents(true)
     try {
-      const res = await api.get('/downloads/', {
-        params: { playlist_parents_only: '1', page_size: 100 },
-      })
+      const res = await api.get('/downloads/playlists/', { params: { page_size: 100 } })
       const list = res.data.results ?? res.data
       setParents(Array.isArray(list) ? list : [])
     } catch {
@@ -34,15 +32,15 @@ export default function PlaylistsPage() {
   }, [t])
 
   const loadChildren = useCallback(
-    async (parentId) => {
-      if (!parentId) {
+    async (playlistId) => {
+      if (!playlistId) {
         setChildren([])
         return
       }
       setLoadingChildren(true)
       try {
         const res = await api.get('/downloads/', {
-          params: { playlist_parent: parentId, page_size: 200, sort: 'queue' },
+          params: { playlist: playlistId, page_size: 200, sort: 'queue' },
         })
         const list = res.data.results ?? res.data
         setChildren(Array.isArray(list) ? list : [])
@@ -102,8 +100,8 @@ export default function PlaylistsPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>{t('dashboard.recent.colTitle')}</TableHead>
+                      <TableHead>{t('playlists.childrenTitle')}</TableHead>
                       <TableHead>{t('dashboard.recent.colStatus')}</TableHead>
-                      <TableHead className="w-[1%]" />
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -113,14 +111,14 @@ export default function PlaylistsPage() {
                         className={selectedId === p.id ? 'bg-muted/60' : 'cursor-pointer'}
                         onClick={() => setSelectedId(p.id)}
                       >
-                        <TableCell className="max-w-[200px] truncate font-medium">{p.title || p.url}</TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">{p.status}</Badge>
+                        <TableCell className="max-w-[200px] truncate font-medium">
+                          {p.title || p.source_url}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground tabular-nums">
+                          {p.total_count ?? p.job_count ?? 0}
                         </TableCell>
                         <TableCell>
-                          <Button variant="ghost" size="sm" asChild onClick={(e) => e.stopPropagation()}>
-                            <Link to={`/jobs/${p.id}`}>{t('playlists.details')}</Link>
-                          </Button>
+                          <Badge variant="secondary">{p.status}</Badge>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -135,7 +133,7 @@ export default function PlaylistsPage() {
           <CardHeader className="border-b bg-muted/30">
             <CardTitle className="text-lg">{t('playlists.childrenTitle')}</CardTitle>
             <CardDescription>
-              {selected ? selected.title || selected.url : t('playlists.selectParent')}
+              {selected ? selected.title || selected.source_url : t('playlists.selectParent')}
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-4">
@@ -159,7 +157,7 @@ export default function PlaylistsPage() {
                   <TableBody>
                     {children.map((c) => (
                       <TableRow key={c.id}>
-                        <TableCell className="max-w-[180px] truncate">{c.title || c.url}</TableCell>
+                        <TableCell className="max-w-[180px] truncate">{c.title || c.source_url || c.url}</TableCell>
                         <TableCell className="text-muted-foreground">{formatBytes(c.file_size || 0)}</TableCell>
                         <TableCell>
                           <Badge variant="secondary">{c.status}</Badge>

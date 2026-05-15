@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 
 from django.conf import settings
@@ -7,7 +6,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.downloader.models import DownloadJob
+from apps.downloader.models import DownloadJob, DownloadedFile
 
 
 def _safe_relative_path(filename: str) -> Path | None:
@@ -29,8 +28,7 @@ class StorageListView(APIView):
         root: Path = settings.MEDIA_ROOT
         root.mkdir(parents=True, exist_ok=True)
         rel_paths = (
-            DownloadJob.objects.filter(user=user)
-            .exclude(file_path="")
+            DownloadedFile.objects.filter(user=user, is_deleted=False)
             .values_list("file_path", flat=True)
             .distinct()
         )
@@ -39,8 +37,8 @@ class StorageListView(APIView):
             fp = root / rel
             if not fp.is_file():
                 continue
-            job = (
-                DownloadJob.objects.filter(user=user, file_path=rel)
+            dfile = (
+                DownloadedFile.objects.filter(user=user, file_path=rel, is_deleted=False)
                 .order_by("-created_at")
                 .first()
             )
@@ -50,7 +48,7 @@ class StorageListView(APIView):
                     "path": rel.replace("\\", "/"),
                     "size": stat.st_size,
                     "modified": stat.st_mtime,
-                    "job_id": str(job.id) if job else None,
+                    "job_id": str(dfile.job_id) if dfile else None,
                 }
             )
         items.sort(key=lambda x: x["path"])
@@ -60,11 +58,11 @@ class StorageListView(APIView):
 class StorageStatsView(APIView):
     def get(self, request):
         user = request.user
-        qs = DownloadJob.objects.filter(user=user, status=DownloadJob.Status.DONE)
-        total_bytes = qs.aggregate(s=Sum("file_size"))["s"] or 0
+        qs = DownloadedFile.objects.filter(user=user, is_deleted=False, job__status=DownloadJob.Status.DONE)
+        total_bytes = qs.aggregate(s=Sum("file_size_bytes"))["s"] or 0
         count = qs.count()
         by_platform = list(
-            qs.values("platform").annotate(bytes=Sum("file_size"), n=Count("id")).order_by("-bytes")
+            qs.values("job__platform").annotate(bytes=Sum("file_size_bytes"), n=Count("id")).order_by("-bytes")
         )
         return Response(
             {
@@ -83,16 +81,16 @@ class StorageDeleteView(APIView):
         user = request.user
         uid = str(user.uuid)
         if rel.parts and rel.parts[0] != uid:
-            if not DownloadJob.objects.filter(user=user, file_path=str(rel.as_posix())).exists():
+            if not DownloadedFile.objects.filter(user=user, file_path=str(rel.as_posix())).exists():
                 return Response({"detail": "Invalid path."}, status=400)
         full = settings.MEDIA_ROOT / rel
         if not full.is_file():
             return Response({"detail": "Not found."}, status=404)
-        job = DownloadJob.objects.filter(user=user, file_path=str(rel.as_posix())).first()
-        if not job:
+        dfile = DownloadedFile.objects.filter(user=user, file_path=str(rel.as_posix()), is_deleted=False).first()
+        if not dfile:
             return Response({"detail": "Forbidden."}, status=403)
         full.unlink(missing_ok=True)
-        job.file_path = ""
-        job.file_size = 0
-        job.save(update_fields=["file_path", "file_size", "updated_at"])
+        dfile.is_deleted = True
+        dfile.file_size_bytes = 0
+        dfile.save(update_fields=["is_deleted", "file_size_bytes"])
         return Response({"deleted": True}, status=status.HTTP_200_OK)

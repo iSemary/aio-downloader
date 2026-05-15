@@ -112,7 +112,9 @@ export default function JobDetailPage() {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0 space-y-1">
                 <CardTitle className="text-xl leading-snug">{merged.title || t('queue.untitled')}</CardTitle>
-                <CardDescription className="break-all font-mono text-xs">{merged.url}</CardDescription>
+                <CardDescription className="break-all font-mono text-xs">
+                  {merged.source_url || merged.url}
+                </CardDescription>
               </div>
               <div className="flex flex-wrap gap-2">
                 <Badge variant="outline" className="capitalize">
@@ -128,7 +130,7 @@ export default function JobDetailPage() {
           <CardContent className="space-y-4 pt-6">
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" size="sm" className="gap-1.5" asChild>
-                <a href={merged.url} target="_blank" rel="noreferrer">
+                <a href={merged.source_url || merged.url} target="_blank" rel="noreferrer">
                   <ExternalLink className="size-3.5" />
                   {t('jobDetail.openUrl')}
                 </a>
@@ -247,10 +249,17 @@ export default function JobDetailPage() {
               <div>
                 <span className="font-medium text-foreground">{t('jobDetail.platform')}</span> {merged.platform || '—'}
               </div>
-              {merged.playlist_parent ? (
+              {merged.playlist?.id ? (
                 <div className="sm:col-span-2">
                   <span className="font-medium text-foreground">{t('jobDetail.playlistParent')}</span>{' '}
-                  <Link className="text-primary underline-offset-4 hover:underline" to={`/jobs/${merged.playlist_parent}`}>
+                  <Link className="text-primary underline-offset-4 hover:underline" to="/playlists">
+                    {merged.playlist.title || merged.playlist.source_url || merged.playlist.id}
+                  </Link>
+                </div>
+              ) : merged.playlist_parent ? (
+                <div className="sm:col-span-2">
+                  <span className="font-medium text-foreground">{t('jobDetail.playlistParent')}</span>{' '}
+                  <Link className="text-primary underline-offset-4 hover:underline" to="/playlists">
                     {merged.playlist_parent}
                   </Link>
                 </div>

@@ -1,3 +1,4 @@
+from django.contrib.auth import get_user_model
 from django.utils.decorators import method_decorator
 from django_ratelimit.decorators import ratelimit
 from rest_framework import generics, permissions, status
@@ -6,9 +7,11 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenBlacklistView, TokenObtainPairView
 
+from .models import UserPreferences
 from .serializers import (
     PasswordChangeSerializer,
     RegisterSerializer,
+    UserPreferencesSerializer,
     UserSerializer,
     UserUpdateSerializer,
 )
@@ -23,6 +26,8 @@ class RegisterView(generics.CreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
+        User = get_user_model()
+        user = User.objects.select_related("preferences").get(pk=user.pk)
         refresh = RefreshToken.for_user(user)
         return Response(
             {
@@ -49,6 +54,14 @@ class MeView(generics.RetrieveUpdateAPIView):
 
     def get_object(self):
         return self.request.user
+
+
+class UserPreferencesView(generics.RetrieveUpdateAPIView):
+    serializer_class = UserPreferencesSerializer
+
+    def get_object(self):
+        prefs, _ = UserPreferences.objects.get_or_create(user=self.request.user)
+        return prefs
 
 
 class PasswordChangeView(APIView):

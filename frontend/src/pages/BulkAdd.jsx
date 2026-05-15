@@ -19,8 +19,8 @@ export default function BulkAddPage() {
   const { t } = useTranslation()
   const user = useAuthStore((s) => s.user)
   const [text, setText] = useState('')
-  const [format, setFormat] = useState(user?.default_format || 'mp4')
-  const [quality, setQuality] = useState(user?.default_quality || 'best')
+  const [format, setFormat] = useState(user?.preferences?.default_format || 'mp4')
+  const [quality, setQuality] = useState(user?.preferences?.default_quality || 'best')
   const [httpConnections, setHttpConnections] = useState(1)
   const [submitting, setSubmitting] = useState(false)
 
@@ -46,9 +46,12 @@ export default function BulkAddPage() {
         quality,
         http_connections: httpConnections,
       })
-      const n = (data.jobs || []).length
+      const jobs = data.jobs || []
+      const n = jobs.length
+      const playlistN = jobs.filter((j) => j.kind === 'playlist').length
       const errors = data.errors || []
       if (n) toast.success(t('bulkAdd.queued', { count: n }))
+      if (playlistN) toast.message(`Playlists: ${playlistN}`)
       if (errors.length) toast.message(t('bulkAdd.partial', { count: errors.length }))
       if (n) setText('')
     } catch (err) {

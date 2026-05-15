@@ -11,7 +11,7 @@ DEFAULT_PASSWORD = "testpassword123"
 
 
 class Command(BaseCommand):
-    help = "Create or update a local test user (for development only)."
+    help = "Create or update a local test user (for development only). UserPreferences and TelegramConfig are created via signals."
 
     def add_arguments(self, parser):
         parser.add_argument(
