@@ -228,6 +228,7 @@ export default function SettingsPage() {
                 <Input
                   id="chat_id"
                   className="min-h-11 font-mono text-sm"
+                  autoComplete="off"
                   placeholder={t('settings.telegramChatIdPlaceholder')}
                   value={tg.chat_id}
                   onChange={(e) => setTg({ ...tg, chat_id: e.target.value })}
@@ -354,6 +355,7 @@ export default function SettingsPage() {
                   <Input
                     id="root_folder_id"
                     className="min-h-11 font-mono text-sm"
+                    autoComplete="off"
                     placeholder={t('settings.gdriveFolderIdPlaceholder') || 'Leave empty for root'}
                     value={gd.root_folder_id}
                     onChange={(e) => setGd({ ...gd, root_folder_id: e.target.value })}
@@ -400,6 +402,7 @@ export default function SettingsPage() {
                   <Input
                     id="first_name"
                     className="min-h-11"
+                    autoComplete="off"
                     placeholder={t('settings.firstNamePlaceholder')}
                     value={user?.first_name || ''}
                     onChange={(e) => setUser({ first_name: e.target.value })}
@@ -410,6 +413,7 @@ export default function SettingsPage() {
                   <Input
                     id="last_name"
                     className="min-h-11"
+                    autoComplete="off"
                     placeholder={t('settings.lastNamePlaceholder')}
                     value={user?.last_name || ''}
                     onChange={(e) => setUser({ last_name: e.target.value })}
@@ -470,6 +474,7 @@ export default function SettingsPage() {
                     id="retention_days"
                     className="min-h-11"
                     type="number"
+                    autoComplete="off"
                     min={0}
                     max={3650}
                     inputMode="numeric"
@@ -506,11 +511,11 @@ export default function SettingsPage() {
             <form className="grid gap-4" onSubmit={changePassword}>
               <div className="grid gap-2">
                 <Label htmlFor="old_password">{t('settings.currentPassword')}</Label>
-                <Input
-                  id="old_password"
-                  className="min-h-11"
-                  type="password"
-                  autoComplete="current-password"
+                  <Input
+                    id="old_password"
+                    className="min-h-11"
+                    type="password"
+                    autoComplete="off"
                   placeholder={t('settings.currentPasswordPlaceholder')}
                   value={pwd.old_password}
                   onChange={(e) => setPwd({ ...pwd, old_password: e.target.value })}
@@ -523,7 +528,7 @@ export default function SettingsPage() {
                     id="new_password"
                     className="min-h-11"
                     type="password"
-                    autoComplete="new-password"
+                    autoComplete="off"
                     placeholder={t('settings.newPasswordPlaceholder')}
                     value={pwd.new_password}
                     onChange={(e) => setPwd({ ...pwd, new_password: e.target.value })}
@@ -535,7 +540,7 @@ export default function SettingsPage() {
                     id="new_password_confirm"
                     className="min-h-11"
                     type="password"
-                    autoComplete="new-password"
+                    autoComplete="off"
                     placeholder={t('settings.confirmPasswordPlaceholder')}
                     value={pwd.new_password_confirm}
                     onChange={(e) => setPwd({ ...pwd, new_password_confirm: e.target.value })}

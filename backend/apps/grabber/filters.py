@@ -62,10 +62,26 @@ class FilterEngine:
             return False
         if is_regex:
             try:
-                return bool(re.search(pattern, value, re.IGNORECASE))
+                if re.search(pattern, value, re.IGNORECASE):
+                    return True
+                if re.search(pattern, f".{value}", re.IGNORECASE):
+                    return True
+                return False
             except re.error:
                 return False
-        return fnmatch.fnmatch(value.lower(), pattern.lower())
+        p = pattern.lower()
+        v = value.lower()
+        if "*" not in p and "?" not in p and p.isdigit() and v.isdigit():
+            return p == v
+        if "*" not in p and "?" not in p:
+            return p in v
+        if fnmatch.fnmatch(v, p):
+            return True
+        if fnmatch.fnmatch(f".{v}", p):
+            return True
+        if fnmatch.fnmatch(v, p.lstrip("*.")):
+            return True
+        return False
 
 
 FILE_TYPE_EXTENSIONS = {

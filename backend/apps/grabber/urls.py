@@ -7,6 +7,7 @@ from .views import (
     GrabberFilterViewSet,
     GrabberProjectFilesBulkDownloadView,
     GrabberProjectViewSet,
+    SiteAccountViewSet,
 )
 
 router = DefaultRouter()
@@ -34,4 +35,11 @@ urlpatterns = [
         name="grabber-files-bulk-download",
     ),
     path("", include(router.urls)),
+]
+
+# Sites (website auth credentials) — not nested under projects
+sites_router = DefaultRouter()
+sites_router.register("sites", SiteAccountViewSet, basename="site-account")
+urlpatterns += [
+    path("", include(sites_router.urls)),
 ]

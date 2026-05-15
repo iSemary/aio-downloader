@@ -248,8 +248,220 @@
              "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
              "url": "{{base_url}}/api/integrations/gdrive/test/"
            }
-         }
-       ]
-     }
-  ]
+      },
+      {
+        "name": "Grabber",
+        "description": "Site grabber for crawling websites and discovering/downloading media files.",
+        "item": [
+          {
+            "name": "Create project",
+            "request": {
+              "method": "POST",
+              "header": [
+                { "key": "Authorization", "value": "Bearer {{access_token}}" },
+                { "key": "Content-Type", "value": "application/json" }
+              ],
+              "url": "{{base_url}}/api/grabber/projects/",
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"name\": \"My Site Grab\",\n  \"start_url\": \"https://example.com\",\n  \"max_depth\": 2,\n  \"max_pages\": 100,\n  \"max_files\": 500,\n  \"concurrency\": 3,\n  \"crawl_delay\": 1.0,\n  \"respect_robots_txt\": true,\n  \"use_javascript\": false\n}"
+              }
+            }
+          },
+          {
+            "name": "List projects",
+            "request": {
+              "method": "GET",
+              "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+              "url": "{{base_url}}/api/grabber/projects/"
+            }
+          },
+          {
+            "name": "Get project detail",
+            "request": {
+              "method": "GET",
+              "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+              "url": "{{base_url}}/api/grabber/projects/{{grabber_project_id}}/"
+            }
+          },
+          {
+            "name": "Update project",
+            "request": {
+              "method": "PATCH",
+              "header": [
+                { "key": "Authorization", "value": "Bearer {{access_token}}" },
+                { "key": "Content-Type", "value": "application/json" }
+              ],
+              "url": "{{base_url}}/api/grabber/projects/{{grabber_project_id}}/",
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"name\": \"Updated Project Name\"\n}"
+              }
+            }
+          },
+          {
+            "name": "Delete project",
+            "request": {
+              "method": "DELETE",
+              "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+              "url": "{{base_url}}/api/grabber/projects/{{grabber_project_id}}/"
+            }
+          },
+          {
+            "name": "Start crawl",
+            "request": {
+              "method": "POST",
+              "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+              "url": "{{base_url}}/api/grabber/projects/{{grabber_project_id}}/start/"
+            }
+          },
+          {
+            "name": "Stop crawl",
+            "request": {
+              "method": "POST",
+              "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+              "url": "{{base_url}}/api/grabber/projects/{{grabber_project_id}}/stop/"
+            }
+          },
+          {
+            "name": "Pause crawl",
+            "request": {
+              "method": "POST",
+              "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+              "url": "{{base_url}}/api/grabber/projects/{{grabber_project_id}}/pause/"
+            }
+          },
+          {
+            "name": "Resume crawl",
+            "request": {
+              "method": "POST",
+              "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+              "url": "{{base_url}}/api/grabber/projects/{{grabber_project_id}}/resume/"
+            }
+          },
+          {
+            "name": "Get project stats",
+            "request": {
+              "method": "GET",
+              "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+              "url": "{{base_url}}/api/grabber/projects/{{grabber_project_id}}/stats/"
+            }
+          },
+          {
+            "name": "List discovered files",
+            "request": {
+              "method": "GET",
+              "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+              "url": "{{base_url}}/api/grabber/projects/{{grabber_project_id}}/files/?page_size=50"
+            }
+          },
+          {
+            "name": "Queue file download",
+            "request": {
+              "method": "POST",
+              "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+              "url": "{{base_url}}/api/grabber/projects/{{grabber_project_id}}/files/{{grabber_file_id}}/download/"
+            }
+          },
+          {
+            "name": "Bulk download files",
+            "request": {
+              "method": "POST",
+              "header": [
+                { "key": "Authorization", "value": "Bearer {{access_token}}" },
+                { "key": "Content-Type", "value": "application/json" }
+              ],
+              "url": "{{base_url}}/api/grabber/projects/{{grabber_project_id}}/files/download-bulk/",
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"file_ids\": [\"file-uuid-1\", \"file-uuid-2\"]\n}"
+              }
+            }
+          },
+          {
+            "name": "List filters",
+            "request": {
+              "method": "GET",
+              "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+              "url": "{{base_url}}/api/grabber/projects/{{grabber_project_id}}/filters/"
+            }
+          },
+          {
+            "name": "Add filter",
+            "request": {
+              "method": "POST",
+              "header": [
+                { "key": "Authorization", "value": "Bearer {{access_token}}" },
+                { "key": "Content-Type", "value": "application/json" }
+              ],
+              "url": "{{base_url}}/api/grabber/projects/{{grabber_project_id}}/filters/",
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"filter_type\": \"include\",\n  \"target\": \"file_type\",\n  \"pattern\": \"*.mp4\",\n  \"is_regex\": false\n}"
+              }
+            }
+          },
+          {
+            "name": "Delete filter",
+            "request": {
+              "method": "DELETE",
+              "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+              "url": "{{base_url}}/api/grabber/projects/{{grabber_project_id}}/filters/{{grabber_filter_id}}/"
+            }
+          }
+        ]
+      },
+      {
+        "name": "Sites",
+        "description": "Website authentication credentials for the Grabber.",
+        "item": [
+          {
+            "name": "List sites",
+            "request": {
+              "method": "GET",
+              "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+              "url": "{{base_url}}/api/grabber/sites/"
+            }
+          },
+          {
+            "name": "Create site",
+            "request": {
+              "method": "POST",
+              "header": [
+                { "key": "Authorization", "value": "Bearer {{access_token}}" },
+                { "key": "Content-Type", "value": "application/json" }
+              ],
+              "url": "{{base_url}}/api/grabber/sites/",
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"name\": \"Example Site\",\n  \"site_url\": \"https://example.com\",\n  \"username\": \"user@example.com\",\n  \"login_method\": \"cookie\",\n  \"cookies\": {}\n}"
+              }
+            }
+          },
+          {
+            "name": "Update site",
+            "request": {
+              "method": "PATCH",
+              "header": [
+                { "key": "Authorization", "value": "Bearer {{access_token}}" },
+                { "key": "Content-Type", "value": "application/json" }
+              ],
+              "url": "{{base_url}}/api/grabber/sites/{{site_id}}/",
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"name\": \"Updated Site\"\n}"
+              }
+            }
+          },
+          {
+            "name": "Delete site",
+            "request": {
+              "method": "DELETE",
+              "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+              "url": "{{base_url}}/api/grabber/sites/{{site_id}}/"
+            }
+          }
+        ]
+      }
+   ]
 }

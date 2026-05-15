@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import { Library, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { api } from '@/api/client'
-import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/ui/status-badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/data-table'
@@ -79,7 +79,7 @@ export default function PlaylistsPage() {
     {
       accessorKey: 'status',
       header: t('dashboard.recent.colStatus'),
-      cell: (info) => <Badge variant="secondary">{info.getValue()}</Badge>,
+      cell: (info) => <StatusBadge status={info.getValue()} />,
     },
     {
       id: 'actions',
@@ -141,7 +141,7 @@ export default function PlaylistsPage() {
                       >
                         <td className="max-w-[200px] truncate p-2 align-middle font-medium">{p.title || p.source_url}</td>
                         <td className="p-2 align-middle text-muted-foreground tabular-nums">{p.total_count ?? p.job_count ?? 0}</td>
-                        <td className="p-2 align-middle"><Badge variant="secondary">{p.status}</Badge></td>
+                        <td className="p-2 align-middle"><StatusBadge status={p.status} /></td>
                       </tr>
                     ))}
                   </tbody>
@@ -171,6 +171,14 @@ export default function PlaylistsPage() {
                 fetchData={(params) => api.get('/downloads/', { params: { ...params, playlist: selectedId, sort: 'queue' } })}
                 searchPlaceholder={t('table.searchPlaceholder')}
                 pageSize={15}
+                enableDateFilter
+                dateFields={[
+                  { value: 'created_at', label: 'Created' },
+                  { value: 'updated_at', label: 'Updated' },
+                  { value: 'scheduled_at', label: 'Scheduled' },
+                  { value: 'started_at', label: 'Started' },
+                  { value: 'completed_at', label: 'Completed' },
+                ]}
               />
             )}
           </CardContent>

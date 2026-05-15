@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import GrabberCrawlTask, GrabberDiscoveredFile, GrabberFilter, GrabberProject
+from .models import GrabberCrawlTask, GrabberDiscoveredFile, GrabberFilter, GrabberProject, SiteAccount
 
 
 @admin.register(GrabberProject)
@@ -26,3 +26,10 @@ class GrabberCrawlTaskAdmin(admin.ModelAdmin):
 class GrabberDiscoveredFileAdmin(admin.ModelAdmin):
     list_display = ("file_name", "file_type", "file_size", "project", "status")
     list_filter = ("file_type", "status")
+
+
+@admin.register(SiteAccount)
+class SiteAccountAdmin(admin.ModelAdmin):
+    list_display = ("name", "site_url", "user", "login_method", "is_active", "created_at")
+    list_filter = ("login_method", "is_active")
+    search_fields = ("name", "site_url", "username")

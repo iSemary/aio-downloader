@@ -6,19 +6,21 @@ import {
   Download,
   EllipsisVertical,
   FileArchive,
-  FileAudio,
   FileText,
   Globe,
   HardDrive,
   History,
+  Image,
   LayoutDashboard,
   Library,
   ListOrdered,
   ListPlus,
   LogOut,
+  Music,
   ScanSearch,
   Settings,
   Timer,
+  Video,
   Webcam,
 } from 'lucide-react'
 import { LogoMark } from '@/components/layout/LogoMark'
@@ -45,26 +47,28 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar'
 
-const downloadItems = [
+export const downloadItems = [
   { to: '/downloads', key: 'all', icon: Download },
   { to: '/downloads?filter=unfinished', key: 'unfinished', icon: Clock },
   { to: '/downloads?filter=finished', key: 'finished', icon: CheckCircle2 },
   { to: '/downloads?filter=scheduled', key: 'scheduled', icon: Timer },
 ]
 
-const categoryItems = [
+export const categoryItems = [
+  { to: '/downloads?category=videos', key: 'videos', icon: Video },
+  { to: '/downloads?category=music', key: 'music', icon: Music },
+  { to: '/downloads?category=images', key: 'images', icon: Image },
   { to: '/downloads?category=compressed', key: 'compressed', icon: FileArchive },
   { to: '/downloads?category=documents', key: 'documents', icon: FileText },
-  { to: '/downloads?category=media', key: 'media', icon: FileAudio },
   { to: '/downloads?category=programs', key: 'programs', icon: Webcam },
 ]
 
-const automationItems = [
+export const automationItems = [
   { to: '/grabber', key: 'grabber', icon: ScanSearch },
   { to: '/sites', key: 'sites', icon: Globe },
 ]
 
-const navItems = [
+export const navItems = [
   { to: '/dashboard', key: 'dashboard', icon: LayoutDashboard },
   { to: '/queue', key: 'queue', icon: ListOrdered },
   { to: '/bulk-add', key: 'bulkAdd', icon: ListPlus },

@@ -9,6 +9,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { DateRangePicker } from '@/components/ui/date-range-picker'
 import { cn } from '@/lib/utils'
 
 function SortIcon({ direction }) {
@@ -27,6 +28,9 @@ export const DataTable = forwardRef(function DataTable({
   searchPlaceholder,
   pageSize = 15,
   externalParams = {},
+  enableDateFilter = false,
+  dateFields = [],
+  defaultDateField = 'created_at',
 }, ref) {
   const { t } = useTranslation()
   const [data, setData] = useState([])
@@ -36,10 +40,12 @@ export const DataTable = forwardRef(function DataTable({
   const [searchInput, setSearchInput] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [sorting, setSorting] = useState({})
+  const [dateRange, setDateRange] = useState({ from: undefined, to: undefined })
+  const [dateField, setDateField] = useState(defaultDateField)
 
   const fetchFn = fetchData || defaultFetch
 
-  const load = useCallback(async (p, search, sort, ext) => {
+  const load = useCallback(async (p, search, sort, ext, dr, df) => {
     setLoading(true)
     try {
       const params = { page: p, page_size: pageSize, ...ext }
@@ -47,6 +53,9 @@ export const DataTable = forwardRef(function DataTable({
       if (sort.column && sort.direction) {
         params.ordering = (sort.direction === 'desc' ? '-' : '') + sort.column
       }
+      if (dr?.from) params.date_from = dr.from.toISOString().slice(0, 10)
+      if (dr?.to) params.date_to = dr.to.toISOString().slice(0, 10)
+      if (dr?.from || dr?.to) params.date_field = df || defaultDateField
       const res = await fetchFn(params)
       setData(res.data.results || [])
       const count = res.data.count || 0
@@ -57,19 +66,22 @@ export const DataTable = forwardRef(function DataTable({
     } finally {
       setLoading(false)
     }
-  }, [fetchFn, pageSize])
+  }, [fetchFn, pageSize, defaultDateField])
 
   const hasExternal = Object.keys(externalParams).length > 0
   const externalKey = hasExternal ? JSON.stringify(externalParams) : 'none'
 
+  const dateKey = `${dateField}-${dateRange.from?.getTime() || 'none'}-${dateRange.to?.getTime() || 'none'}`
+
   useImperativeHandle(ref, () => ({
-    refresh: () => load(page, searchQuery, sorting, externalParams),
+    refresh: () => load(page, searchQuery, sorting, externalParams, dateRange, dateField),
     resetPageAndRefresh: () => { setPage(1); },
-  }), [load, page, searchQuery, sorting, externalParams])
+  }), [load, page, searchQuery, sorting, externalParams, dateRange, dateField])
 
   useEffect(() => {
-    load(page, searchQuery, sorting, externalParams)
-  }, [page, searchQuery, sorting, externalKey]) // eslint-disable-line react-hooks/exhaustive-deps
+    load(page, searchQuery, sorting, externalParams, dateRange, dateField)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, searchQuery, sorting, externalKey, dateKey])
 
   useEffect(() => {
     setPage(1)
@@ -116,7 +128,16 @@ export const DataTable = forwardRef(function DataTable({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-end gap-2">
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        {enableDateFilter && dateFields.length > 0 && (
+          <DateRangePicker
+            dateField={dateField}
+            onDateFieldChange={(val) => { setDateField(val); setPage(1) }}
+            dateFields={dateFields}
+            dateRange={dateRange}
+            onDateRangeChange={(range) => { setDateRange(range ?? { from: undefined, to: undefined }); setPage(1) }}
+          />
+        )}
         <form onSubmit={handleSearch} className="flex items-center gap-2">
           <div className="relative">
             <Input

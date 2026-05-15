@@ -26,6 +26,7 @@ import { toast } from 'sonner'
 import { api } from '@/api/client'
 import { JobWebSocketListener } from '@/components/JobWebSocketListener'
 import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/ui/status-badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
@@ -276,9 +277,7 @@ export default function QueuePage() {
                         <span className="hidden w-24 shrink-0 text-end text-xs text-muted-foreground sm:block">
                           {formatBytes(job.bytes_downloaded || job.file_size || 0)}
                         </span>
-                        <Badge className="w-24 shrink-0 justify-center capitalize" variant="secondary">
-                          {job.status}
-                        </Badge>
+                        <StatusBadge status={job.status} className="w-24 shrink-0 justify-center" />
                       </button>
                     </div>
                   )
@@ -304,7 +303,7 @@ export default function QueuePage() {
                 <div className="flex flex-wrap gap-2">
                   <Badge variant="outline">{selected.engine}</Badge>
                   <Badge variant="secondary">{selected.media_kind}</Badge>
-                  <Badge>{selected.status}</Badge>
+                  <StatusBadge status={selected.status} />
                 </div>
                 <Separator />
                 <div className="grid gap-1 text-muted-foreground">

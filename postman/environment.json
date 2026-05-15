@@ -5,7 +5,11 @@
     { "key": "base_url", "value": "http://localhost:8000", "enabled": true },
     { "key": "access_token", "value": "", "enabled": true },
     { "key": "refresh_token", "value": "", "enabled": true },
-    { "key": "job_id", "value": "", "enabled": true }
+    { "key": "job_id", "value": "", "enabled": true },
+    { "key": "grabber_project_id", "value": "", "enabled": true },
+    { "key": "grabber_file_id", "value": "", "enabled": true },
+    { "key": "grabber_filter_id", "value": "", "enabled": true },
+    { "key": "site_id", "value": "", "enabled": true }
   ],
   "_postman_variable_scope": "environment"
 }

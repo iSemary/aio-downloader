@@ -69,9 +69,11 @@ class PlaylistMinimalSerializer(serializers.ModelSerializer):
 
 
 CATEGORY_MAP = {
+    'videos': ['video'],
+    'music': ['audio'],
+    'images': ['image'],
     'compressed': ['archive'],
     'documents': ['document'],
-    'media': ['video', 'audio'],
     'programs': [],
 }
 

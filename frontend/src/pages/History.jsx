@@ -16,6 +16,7 @@ import {
 import { toast } from 'sonner'
 import { api } from '@/api/client'
 import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/ui/status-badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/data-table'
@@ -43,7 +44,7 @@ export default function HistoryPage() {
     {
       accessorKey: 'status',
       header: t('dashboard.recent.colStatus'),
-      cell: (info) => <Badge variant="secondary">{info.getValue()}</Badge>,
+      cell: (info) => <StatusBadge status={info.getValue()} />,
     },
     {
       id: 'tg',
@@ -164,6 +165,14 @@ export default function HistoryPage() {
             fetchData={fetchData}
             searchPlaceholder={t('table.searchPlaceholder')}
             pageSize={15}
+            enableDateFilter
+            dateFields={[
+              { value: 'created_at', label: 'Created' },
+              { value: 'updated_at', label: 'Updated' },
+              { value: 'scheduled_at', label: 'Scheduled' },
+              { value: 'started_at', label: 'Started' },
+              { value: 'completed_at', label: 'Completed' },
+            ]}
           />
         </CardContent>
       </Card>
@@ -214,7 +223,7 @@ export default function HistoryPage() {
                     <Badge variant="secondary" className="capitalize">
                       {selectedJob.media_kind}
                     </Badge>
-                    <Badge className="capitalize">{selectedJob.status}</Badge>
+                    <StatusBadge status={selectedJob.status} />
                   </div>
                 </div>
 

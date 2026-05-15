@@ -51,7 +51,7 @@ describe('AppSidebar', () => {
     const { categoryItems } = await import('../AppSidebar')
     
     expect(categoryItems).toBeDefined()
-    expect(categoryItems.length).toBe(4)
+    expect(categoryItems.length).toBe(6)
   })
 
   it('automation items are defined', async () => {

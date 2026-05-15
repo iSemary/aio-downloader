@@ -1,3 +1,4 @@
+from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
 from django.contrib.auth import get_user_model
@@ -543,6 +544,102 @@ class DownloadJobViewSetTests(TestCase):
         res = self.client.get("/api/downloads/?page_size=5")
         self.assertEqual(res.status_code, 200)
         self.assertEqual(len(res.data["results"]), 5)
+
+    # ── Date range filtering ──────────────────────────────────────────
+
+    def _make_job(self, **kw):
+        defaults = dict(
+            user=self.user,
+            source_url="https://example.com/v.mp4",
+            title="Video",
+            platform="http",
+            status=DownloadJob.Status.DONE,
+        )
+        defaults.update(kw)
+        return DownloadJob.objects.create(**defaults)
+
+    def test_filter_by_date_from(self):
+        self._make_job(title="Old")
+        later = timezone.now() + timedelta(hours=1)
+        self._make_job(title="New")
+        DownloadJob.objects.filter(title="New").update(created_at=later)
+
+        res = self.client.get(
+            "/api/downloads/?date_from=" + (timezone.now() + timedelta(minutes=30)).strftime("%Y-%m-%d")
+        )
+        self.assertEqual(res.status_code, 200)
+        titles = [j["title"] for j in res.data["results"]]
+        self.assertIn("New", titles)
+        self.assertNotIn("Old", titles)
+
+    def test_filter_by_date_to(self):
+        early = timezone.now() - timedelta(days=2)
+        self._make_job(title="Early")
+        DownloadJob.objects.filter(title="Early").update(created_at=early)
+        self._make_job(title="Recent")
+
+        res = self.client.get(
+            "/api/downloads/?date_to=" + (timezone.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+        )
+        self.assertEqual(res.status_code, 200)
+        titles = [j["title"] for j in res.data["results"]]
+        self.assertIn("Early", titles)
+        self.assertNotIn("Recent", titles)
+
+    def test_filter_by_date_range(self):
+        early = timezone.now() - timedelta(days=5)
+        middle = timezone.now() - timedelta(days=3)
+        late = timezone.now() - timedelta(hours=1)
+        self._make_job(title="Too Old")
+        self._make_job(title="In Range")
+        self._make_job(title="Too New")
+        DownloadJob.objects.filter(title="Too Old").update(created_at=early)
+        DownloadJob.objects.filter(title="In Range").update(created_at=middle)
+        DownloadJob.objects.filter(title="Too New").update(created_at=late)
+
+        from_d = (timezone.now() - timedelta(days=4)).strftime("%Y-%m-%d")
+        to_d = (timezone.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+        res = self.client.get(f"/api/downloads/?date_from={from_d}&date_to={to_d}")
+        self.assertEqual(res.status_code, 200)
+        titles = [j["title"] for j in res.data["results"]]
+        self.assertIn("In Range", titles)
+        self.assertNotIn("Too Old", titles)
+        self.assertNotIn("Too New", titles)
+
+    def test_filter_by_date_field(self):
+        now = timezone.now()
+        old_created = now - timedelta(days=10)
+        job = self._make_job(title="Updated Recently")
+        DownloadJob.objects.filter(title="Updated Recently").update(created_at=old_created, updated_at=now)
+
+        res = self.client.get(
+            "/api/downloads/?date_field=updated_at&date_from=" + (now - timedelta(hours=1)).strftime("%Y-%m-%d")
+        )
+        self.assertEqual(res.status_code, 200)
+        titles = [j["title"] for j in res.data["results"]]
+        self.assertIn("Updated Recently", titles)
+
+    def test_filter_by_invalid_date_field_fallback(self):
+        now = timezone.now()
+        old = now - timedelta(days=10)
+        self._make_job(title="Old")
+        DownloadJob.objects.filter(title="Old").update(created_at=old)
+        self._make_job(title="New")
+
+        res = self.client.get(
+            "/api/downloads/?date_field=nonexistent&date_from=" + (now - timedelta(days=1)).strftime("%Y-%m-%d")
+        )
+        self.assertEqual(res.status_code, 200)
+        titles = [j["title"] for j in res.data["results"]]
+        self.assertNotIn("Old", titles)
+        self.assertIn("New", titles)
+
+    def test_filter_by_date_from_no_results(self):
+        self._make_job(title="Job")
+        far_future = (timezone.now() + timedelta(days=365)).strftime("%Y-%m-%d")
+        res = self.client.get(f"/api/downloads/?date_from={far_future}")
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(len(res.data["results"]), 0)
 
 
 class DownloadJobReorderTests(TestCase):

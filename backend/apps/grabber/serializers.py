@@ -2,7 +2,7 @@ from rest_framework import serializers
 
 from apps.downloader.models import DownloadJob
 
-from .models import GrabberCrawlTask, GrabberDiscoveredFile, GrabberFilter, GrabberProject
+from .models import GrabberCrawlTask, GrabberDiscoveredFile, GrabberFilter, GrabberProject, SiteAccount
 
 
 class GrabberFilterSerializer(serializers.ModelSerializer):
@@ -192,3 +192,28 @@ class GrabberDuplicateResolutionSerializer(serializers.Serializer):
 
 class FileDownloadSerializer(serializers.Serializer):
     file_ids = serializers.ListField(child=serializers.UUIDField(), min_length=1, max_length=100)
+
+
+class SiteAccountSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SiteAccount
+        fields = (
+            "id",
+            "name",
+            "site_url",
+            "username",
+            "password_encrypted",
+            "cookies",
+            "headers",
+            "login_url",
+            "login_method",
+            "notes",
+            "is_active",
+            "last_used_at",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = ("id", "last_used_at", "created_at", "updated_at")
+        extra_kwargs = {
+            "password_encrypted": {"write_only": True},
+        }

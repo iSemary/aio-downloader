@@ -1,5 +1,8 @@
+from datetime import timedelta
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 from apps.downloader.models import DownloadJob, Playlist
@@ -228,3 +231,53 @@ class PlaylistViewSetTests(TestCase):
         self.assertIn("status", data)
         self.assertIn("created_at", data)
         self.assertIn("updated_at", data)
+
+    # ── Date range filtering ──────────────────────────────────────────
+
+    def test_filter_playlists_by_date_from(self):
+        now = timezone.now()
+        old = now - timedelta(days=5)
+        Playlist.objects.create(
+            user=self.user,
+            source_url="https://example.com/old",
+            title="Old Playlist",
+            platform="youtube",
+        )
+        Playlist.objects.filter(title="Old Playlist").update(created_at=old)
+        Playlist.objects.create(
+            user=self.user,
+            source_url="https://example.com/new",
+            title="New Playlist",
+            platform="youtube",
+        )
+        res = self.client.get(
+            "/api/downloads/playlists/?date_from=" + (now - timedelta(days=1)).strftime("%Y-%m-%d")
+        )
+        self.assertEqual(res.status_code, 200)
+        titles = [p["title"] for p in res.data["results"]]
+        self.assertIn("New Playlist", titles)
+        self.assertNotIn("Old Playlist", titles)
+
+    def test_filter_playlists_by_date_to(self):
+        now = timezone.now()
+        old = now - timedelta(days=5)
+        Playlist.objects.create(
+            user=self.user,
+            source_url="https://example.com/old",
+            title="Old Playlist",
+            platform="youtube",
+        )
+        Playlist.objects.filter(title="Old Playlist").update(created_at=old)
+        Playlist.objects.create(
+            user=self.user,
+            source_url="https://example.com/new",
+            title="New Playlist",
+            platform="youtube",
+        )
+        res = self.client.get(
+            "/api/downloads/playlists/?date_to=" + (now - timedelta(days=1)).strftime("%Y-%m-%d")
+        )
+        self.assertEqual(res.status_code, 200)
+        titles = [p["title"] for p in res.data["results"]]
+        self.assertIn("Old Playlist", titles)
+        self.assertNotIn("New Playlist", titles)

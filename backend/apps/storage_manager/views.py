@@ -35,6 +35,17 @@ class StorageListView(APIView):
 
         db_qs = DownloadedFile.objects.filter(user=user, is_deleted=False)
 
+        date_field = request.query_params.get("date_field", "created_at")
+        date_from = request.query_params.get("date_from")
+        date_to = request.query_params.get("date_to")
+        allowed_fields = {"created_at", "updated_at"}
+        if date_field not in allowed_fields:
+            date_field = "created_at"
+        if date_from:
+            db_qs = db_qs.filter(**{f"{date_field}__gte": date_from})
+        if date_to:
+            db_qs = db_qs.filter(**{f"{date_field}__lte": date_to})
+
         if search:
             db_qs = db_qs.filter(file_path__icontains=search)
 
@@ -84,11 +95,15 @@ class StorageStatsView(APIView):
         by_platform = list(
             qs.values("job__platform").annotate(bytes=Sum("file_size_bytes"), n=Count("id")).order_by("-bytes")
         )
+        by_category = list(
+            qs.values("job__media_kind").annotate(bytes=Sum("file_size_bytes"), n=Count("id")).order_by("-bytes")
+        )
         return Response(
             {
                 "total_bytes": total_bytes,
                 "file_count": count,
                 "by_platform": by_platform,
+                "by_category": by_category,
             }
         )
 

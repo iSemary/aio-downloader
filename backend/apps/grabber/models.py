@@ -271,3 +271,49 @@ class GrabberDiscoveredFile(models.Model):
 
     def __str__(self):
         return f"{self.file_name or self.file_url[:50]} ({self.status})"
+
+
+class SiteAccount(models.Model):
+    """Stores site credentials used by the Grabber for authenticated crawling."""
+
+    class LoginMethod(models.TextChoices):
+        FORM = "form", "Form POST"
+        COOKIE = "cookie", "Cookie Injection"
+        HEADER = "header", "Header Auth"
+        BASIC = "basic", "Basic Auth"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="site_accounts",
+    )
+    name = models.CharField(max_length=255)
+    site_url = models.URLField(max_length=2048)
+    username = models.CharField(max_length=255, blank=True, default="")
+    password_encrypted = models.TextField(blank=True, default="")
+    cookies = models.JSONField(default=dict, blank=True)
+    headers = models.JSONField(default=dict, blank=True)
+    login_url = models.URLField(max_length=2048, blank=True, default="")
+    login_method = models.CharField(
+        max_length=16,
+        choices=LoginMethod.choices,
+        default=LoginMethod.COOKIE,
+    )
+    notes = models.TextField(blank=True, default="")
+    is_active = models.BooleanField(default=True)
+    last_used_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        indexes = [
+            models.Index(fields=("user", "is_active")),
+            models.Index(fields=("user", "-created_at")),
+        ]
+        verbose_name = "Site Account"
+        verbose_name_plural = "Site Accounts"
+
+    def __str__(self):
+        return f"{self.name} ({self.site_url})"

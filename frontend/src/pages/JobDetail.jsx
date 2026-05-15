@@ -15,6 +15,7 @@ import { toast } from 'sonner'
 import { api } from '@/api/client'
 import { JobWebSocketListener } from '@/components/JobWebSocketListener'
 import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/ui/status-badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
@@ -123,7 +124,7 @@ export default function JobDetailPage() {
                 <Badge variant="secondary" className="capitalize">
                   {merged.media_kind}
                 </Badge>
-                <Badge className="capitalize">{merged.status}</Badge>
+                <StatusBadge status={merged.status} />
               </div>
             </div>
           </CardHeader>

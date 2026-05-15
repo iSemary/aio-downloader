@@ -9,7 +9,7 @@ from rest_framework.views import APIView
 from apps.downloader.tasks import enqueue_download
 
 from .filters import FilterEngine
-from .models import GrabberCrawlTask, GrabberDiscoveredFile, GrabberFilter, GrabberProject
+from .models import GrabberCrawlTask, GrabberDiscoveredFile, GrabberFilter, GrabberProject, SiteAccount
 from .serializers import (
     FileDownloadSerializer,
     GrabberCrawlTaskSerializer,
@@ -17,6 +17,7 @@ from .serializers import (
     GrabberFilterSerializer,
     GrabberProjectDetailSerializer,
     GrabberProjectListSerializer,
+    SiteAccountSerializer,
 )
 from .tasks import (
     crawl_project_task,
@@ -56,7 +57,8 @@ class GrabberProjectViewSet(viewsets.ModelViewSet):
             project.discovered_files.all().delete()
 
         project.status = GrabberProject.Status.CRAWLING
-        project.save(update_fields=["status", "pages_crawled", "files_discovered", "files_downloaded", "bytes_downloaded"])
+        project.started_at = timezone.now()
+        project.save(update_fields=["status", "started_at", "pages_crawled", "files_discovered", "files_downloaded", "bytes_downloaded"])
         crawl_project_task.delay(str(project.id))
         return Response({"detail": "Crawl started.", "status": project.status})
 
@@ -140,6 +142,17 @@ class GrabberDiscoveredFileViewSet(viewsets.ModelViewSet):
             project__user=self.request.user,
         ).select_related("download_job")
 
+        date_field = self.request.query_params.get("date_field", "created_at")
+        date_from = self.request.query_params.get("date_from")
+        date_to = self.request.query_params.get("date_to")
+        allowed_fields = {"created_at", "updated_at"}
+        if date_field not in allowed_fields:
+            date_field = "created_at"
+        if date_from:
+            qs = qs.filter(**{f"{date_field}__gte": date_from})
+        if date_to:
+            qs = qs.filter(**{f"{date_field}__lte": date_to})
+
         file_type = self.request.query_params.get("file_type")
         if file_type:
             qs = qs.filter(file_type=file_type)
@@ -204,3 +217,18 @@ class GrabberProjectFilesBulkDownloadView(APIView):
             "queued_count": queued_count,
             "skipped_count": len(file_ids) - queued_count,
         })
+
+
+class SiteAccountViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAuthenticated]
+    serializer_class = SiteAccountSerializer
+
+    def get_queryset(self):
+        qs = SiteAccount.objects.filter(user=self.request.user)
+        search = self.request.query_params.get("search", "")
+        if search:
+            qs = qs.filter(name__icontains=search) | qs.filter(site_url__icontains=search)
+        return qs
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)

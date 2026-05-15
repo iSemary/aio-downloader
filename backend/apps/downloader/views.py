@@ -72,6 +72,17 @@ class DownloadJobViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = _job_queryset_for(self.request.user)
         st = self.request.query_params.get("status")
+
+        date_field = self.request.query_params.get("date_field", "created_at")
+        date_from = self.request.query_params.get("date_from")
+        date_to = self.request.query_params.get("date_to")
+        allowed_fields = {"created_at", "updated_at", "scheduled_at", "started_at", "completed_at"}
+        if date_field not in allowed_fields:
+            date_field = "created_at"
+        if date_from:
+            qs = qs.filter(**{f"{date_field}__gte": date_from})
+        if date_to:
+            qs = qs.filter(**{f"{date_field}__lte": date_to})
         if st:
             statuses = [s.strip() for s in st.split(',') if s.strip()]
             if statuses:
@@ -418,6 +429,17 @@ class PlaylistViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         qs = Playlist.objects.filter(user=self.request.user)
 
+        date_field = self.request.query_params.get("date_field", "created_at")
+        date_from = self.request.query_params.get("date_from")
+        date_to = self.request.query_params.get("date_to")
+        allowed_fields = {"created_at", "updated_at"}
+        if date_field not in allowed_fields:
+            date_field = "created_at"
+        if date_from:
+            qs = qs.filter(**{f"{date_field}__gte": date_from})
+        if date_to:
+            qs = qs.filter(**{f"{date_field}__lte": date_to})
+
         search = self.request.query_params.get("search")
         if search:
             q = search.strip()
@@ -446,6 +468,17 @@ class DownloadedFileViewSet(viewsets.ReadOnlyModelViewSet):
         job_id = self.request.query_params.get("job")
         if job_id:
             qs = qs.filter(job_id=job_id)
+
+        date_field = self.request.query_params.get("date_field", "created_at")
+        date_from = self.request.query_params.get("date_from")
+        date_to = self.request.query_params.get("date_to")
+        allowed_fields = {"created_at", "updated_at"}
+        if date_field not in allowed_fields:
+            date_field = "created_at"
+        if date_from:
+            qs = qs.filter(**{f"{date_field}__gte": date_from})
+        if date_to:
+            qs = qs.filter(**{f"{date_field}__lte": date_to})
 
         search = self.request.query_params.get("search")
         if search:
@@ -697,12 +730,13 @@ class DownloadDashboardView(APIView):
         platforms = []
         for row in (
             DownloadedFile.objects.filter(user=user, is_deleted=False, job__status=DownloadJob.Status.DONE)
-            .values("job__platform")
+            .annotate(platform_lower=Lower("job__platform"))
+            .values("platform_lower")
             .annotate(total_bytes=Coalesce(Sum("file_size_bytes"), 0), count=Count("id"))
         ):
             platforms.append(
                 {
-                    "platform": row.get("job__platform") or "generic",
+                    "platform": row.get("platform_lower") or "generic",
                     "total_bytes": row["total_bytes"],
                     "count": row["count"],
                     "bytes": row["total_bytes"],

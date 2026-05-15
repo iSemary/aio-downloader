@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Database, HardDrive, RefreshCw, Send, Trash2 } from 'lucide-react'
+import { Pie, PieChart, ResponsiveContainer, Tooltip as RechartsTooltip, Cell } from 'recharts'
 import { toast } from 'sonner'
 import { api } from '@/api/client'
 import { Button } from '@/components/ui/button'
@@ -25,6 +26,16 @@ export default function StoragePage() {
   useEffect(() => {
     load()
   }, [load])
+
+  const chartData = useMemo(() => {
+    if (!stats?.by_category) return []
+    return stats.by_category.map(item => ({
+      name: item.job__media_kind || 'unknown',
+      value: item.bytes
+    }))
+  }, [stats])
+
+  const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#64748b']
 
   const fetchData = (params) => api.get('/storage/', { params })
 
@@ -113,27 +124,70 @@ export default function StoragePage() {
           </div>
         </CardHeader>
         <CardContent className="pt-6">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="flex items-center gap-4 rounded-xl border bg-card p-4">
-              <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted">
-                <HardDrive className="size-5 text-muted-foreground" aria-hidden />
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="flex flex-col justify-center gap-3">
+              <div className="flex items-center gap-4 rounded-xl border bg-card p-4">
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted">
+                  <HardDrive className="size-5 text-muted-foreground" aria-hidden />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm text-muted-foreground">{t('storage.total')}</p>
+                  <p className="truncate text-lg font-semibold tabular-nums text-foreground">
+                    {formatBytes(stats?.total_bytes || 0)}
+                  </p>
+                </div>
               </div>
-              <div className="min-w-0">
-                <p className="text-sm text-muted-foreground">{t('storage.total')}</p>
-                <p className="truncate text-lg font-semibold tabular-nums text-foreground">
-                  {formatBytes(stats?.total_bytes || 0)}
-                </p>
+              <div className="flex items-center gap-4 rounded-xl border bg-card p-4">
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted">
+                  <Database className="size-5 text-muted-foreground" aria-hidden />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm text-muted-foreground">{t('storage.files')}</p>
+                  <p className="text-lg font-semibold tabular-nums text-foreground">{stats?.file_count ?? 0}</p>
+                </div>
               </div>
             </div>
-            <div className="flex items-center gap-4 rounded-xl border bg-card p-4">
-              <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted">
-                <Database className="size-5 text-muted-foreground" aria-hidden />
+
+            {chartData.length > 0 ? (
+              <div className="flex flex-col items-center justify-center gap-2 rounded-xl border bg-card p-4">
+                <p className="text-sm font-medium text-muted-foreground">{t('storage.categories') || 'Categories Breakdown'}</p>
+                <div className="h-40 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={chartData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={40}
+                        outerRadius={60}
+                        paddingAngle={5}
+                        dataKey="value"
+                      >
+                        {chartData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <RechartsTooltip
+                        formatter={(value) => formatBytes(value)}
+                        labelFormatter={() => ''}
+                        contentStyle={{ borderRadius: '8px', fontSize: '13px', backgroundColor: 'hsl(var(--card))', color: 'hsl(var(--card-foreground))', borderColor: 'hsl(var(--border))' }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="flex flex-wrap justify-center gap-3 px-2 text-xs">
+                  {chartData.map((entry, index) => (
+                    <div key={entry.name} className="flex items-center gap-1.5 capitalize text-muted-foreground">
+                      <div
+                        className="size-2.5 rounded-full"
+                        style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                      />
+                      {entry.name}
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="min-w-0">
-                <p className="text-sm text-muted-foreground">{t('storage.files')}</p>
-                <p className="text-lg font-semibold tabular-nums text-foreground">{stats?.file_count ?? 0}</p>
-              </div>
-            </div>
+            ) : null}
           </div>
         </CardContent>
       </Card>
@@ -161,6 +215,11 @@ export default function StoragePage() {
             fetchData={fetchData}
             searchPlaceholder={t('table.searchPlaceholder')}
             pageSize={15}
+            enableDateFilter
+            dateFields={[
+              { value: 'created_at', label: 'Created' },
+              { value: 'updated_at', label: 'Updated' },
+            ]}
           />
         </CardContent>
       </Card>

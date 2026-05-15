@@ -41,7 +41,10 @@ import { api } from '@/api/client';
 import { syncDashboardHeader } from '@/lib/syncDashboardHeader';
 import { JobWebSocketListener } from '@/components/JobWebSocketListener';
 import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { Button } from '@/components/ui/button';
+import { Download as DownloadIcon, FileSpreadsheet } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import {
   Card,
   CardContent,
@@ -147,15 +150,15 @@ function ContributionHeatmap({ heatmap, t }) {
 
   return (
     <TooltipProvider delayDuration={100}>
-      <div className="flex max-w-full gap-1 overflow-x-auto pb-1">
+      <div className="flex max-w-full gap-0.5 overflow-x-auto pb-1">
         {columns.map((week, wi) => (
-          <div key={wi} className="flex flex-col gap-1">
+          <div key={wi} className="flex flex-col gap-0.5">
             {week.map((cell) => {
               if (cell.count === null) {
                 return (
                   <div
                     key={cell.date}
-                    className="size-3 shrink-0 rounded-sm bg-transparent"
+                    className="size-2.5 shrink-0 rounded-sm bg-transparent"
                     aria-hidden
                   />
                 );
@@ -169,8 +172,8 @@ function ContributionHeatmap({ heatmap, t }) {
                   <TooltipTrigger asChild>
                     <div
                       className={cn(
-                        'size-3 shrink-0 rounded-sm border border-transparent transition-colors',
-                        cell.count === 0 ? 'bg-muted' : 'border-emerald-900/10',
+                        'size-2.5 shrink-0 rounded-sm border border-transparent transition-colors',
+                        cell.count === 0 ? 'bg-muted/50' : 'border-emerald-900/5',
                       )}
                       style={
                         cell.count > 0
@@ -396,6 +399,44 @@ export default function DashboardPage() {
   const largest = dashboard?.largest;
   const heatmap = dashboard?.heatmap ?? [];
   const speedHistogram = dashboard?.speed_histogram ?? [];
+
+  const exportToExcel = useCallback(() => {
+    try {
+      const data = recent.map((j) => ({
+        Title: j.title || j.source_url || j.url,
+        Platform: j.platform,
+        Size: formatBytes(j.file_size),
+        Status: j.status,
+        'Telegram Sent': j.sent_to_telegram ? 'Yes' : 'No',
+        Date: j.created_at ? new Date(j.created_at).toLocaleString() : '-',
+      }));
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Recent Downloads');
+      XLSX.writeFile(wb, 'aio_downloader_recent.xlsx');
+      toast.success('Excel file exported');
+    } catch (err) {
+      console.error('Export failed', err);
+      toast.error('Failed to export Excel');
+    }
+  }, [recent, t]);
+
+  const exportHeatmapToExcel = useCallback(() => {
+    try {
+      const data = heatmap.map((h) => ({
+        Date: h.date,
+        'Completed Downloads': h.count,
+      }));
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Download Activity');
+      XLSX.writeFile(wb, 'aio_downloader_activity.xlsx');
+      toast.success('Activity data exported');
+    } catch (err) {
+      console.error('Heatmap export failed', err);
+      toast.error('Failed to export activity data');
+    }
+  }, [heatmap]);
 
   const sortedPlatforms = useMemo(() => {
     const list = [...platforms];
@@ -1086,6 +1127,18 @@ export default function DashboardPage() {
                 </CardDescription>
               </div>
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                exportHeatmapToExcel();
+              }}
+              className="gap-2"
+            >
+              <FileSpreadsheet className="size-4" />
+              <span className="hidden sm:inline">Export Excel</span>
+            </Button>
           </CardHeader>
           <CardContent>
             <ContributionHeatmap heatmap={heatmap} t={t} />
@@ -1329,6 +1382,18 @@ export default function DashboardPage() {
                 </CardDescription>
               </div>
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                exportToExcel();
+              }}
+              className="gap-2"
+            >
+              <FileSpreadsheet className="size-4" />
+              <span className="hidden sm:inline">Export Excel</span>
+            </Button>
           </CardHeader>
           <CardContent>
             <Table>
@@ -1357,7 +1422,7 @@ export default function DashboardPage() {
                         </TableCell>
                         <TableCell>{formatBytes(j.file_size)}</TableCell>
                         <TableCell>
-                          <Badge>{j.status}</Badge>
+                          <StatusBadge status={j.status} />
                         </TableCell>
                         <TableCell>
                           {j.sent_to_telegram
