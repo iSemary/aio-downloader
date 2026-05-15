@@ -14,3 +14,4 @@ python-dotenv>=1.0
 whitenoise>=6.7
 cryptography>=42.0
 django-ratelimit>=4.1
+httpx>=0.28

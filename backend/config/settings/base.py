@@ -143,3 +143,9 @@ SIMPLE_JWT = {
 
 # Fernet key for Telegram bot token encryption (url-safe base64, 32 bytes)
 ENCRYPTION_KEY = os.environ.get("ENCRYPTION_KEY", "")
+
+# Direct HTTP downloader (SSRF-guarded; size / redirect limits)
+DOWNLOAD_HTTP_MAX_BYTES = int(os.environ.get("DOWNLOAD_HTTP_MAX_BYTES", str(5 * 1024**3)))
+DOWNLOAD_HTTP_MAX_REDIRECTS = int(os.environ.get("DOWNLOAD_HTTP_MAX_REDIRECTS", "8"))
+DOWNLOAD_HTTP_CHUNK_BYTES = int(os.environ.get("DOWNLOAD_HTTP_CHUNK_BYTES", str(256 * 1024)))
+DOWNLOAD_HTTP_MAX_CONNECTIONS_PER_FILE = int(os.environ.get("DOWNLOAD_HTTP_MAX_CONNECTIONS_PER_FILE", "8"))

@@ -34,7 +34,11 @@ export function useJobWebSocket(jobId) {
               progress: msg.percent,
               speed: msg.speed,
               eta: msg.eta,
+              bytes_downloaded: msg.bytes_downloaded,
+              expected_size: msg.expected_size,
             })
+          } else if (msg.type === 'paused') {
+            update(jobId, { status: 'paused' })
           } else if (msg.type === 'done') {
             update(jobId, {
               status: 'done',

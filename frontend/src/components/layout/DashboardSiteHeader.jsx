@@ -4,6 +4,7 @@ import { Separator } from '@/components/ui/separator'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { cn } from '@/lib/utils'
 import { useThemeStore, applyTheme } from '@/store/useThemeStore'
+import { DashboardHeaderStrip } from '@/components/layout/DashboardHeaderStrip'
 import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher'
 import { useTranslation } from 'react-i18next'
 
@@ -24,7 +25,8 @@ export function DashboardSiteHeader({ sidebarSide = 'left' }) {
           <p className="truncate text-sm font-semibold text-foreground">{t('layout.appName')}</p>
           <p className="truncate text-xs text-muted-foreground">{t('layout.tagline')}</p>
         </div>
-        <div className="ms-auto flex items-center gap-2">
+        <DashboardHeaderStrip />
+        <div className="ms-auto flex shrink-0 items-center gap-2">
           <LanguageSwitcher />
           <Button
             variant="outline"

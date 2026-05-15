@@ -154,6 +154,7 @@
     },
     {
       "name": "Integrations",
+      "description": "Telegram: only users with role `owner` may set `bot_token` via PATCH. All users set `chat_id` (receiver). GET includes `bot_configured` (whether the owner saved a token). Test/push use the owner token with the caller's receiver.",
       "item": [
         {
           "name": "Get Telegram config",

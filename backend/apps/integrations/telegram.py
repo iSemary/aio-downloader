@@ -3,7 +3,10 @@ import logging
 from pathlib import Path
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from telegram import Bot, InputFile
+
+from django.utils import timezone
 
 from apps.downloader.models import DownloadJob
 from apps.integrations.crypto import decrypt_str
@@ -12,6 +15,25 @@ from apps.integrations.models import TelegramConfig
 
 def _run(coro):
     return asyncio.run(coro)
+
+
+def owner_has_bot_token() -> bool:
+    User = get_user_model()
+    owner = User.objects.filter(role=User.Role.OWNER).order_by("pk").first()
+    if not owner:
+        return False
+    return TelegramConfig.objects.filter(user=owner).exclude(bot_token_encrypted="").exists()
+
+
+def get_owner_bot_token() -> str:
+    User = get_user_model()
+    owner = User.objects.filter(role=User.Role.OWNER).order_by("pk").first()
+    if not owner:
+        raise ValueError("No project owner account exists.")
+    cfg = TelegramConfig.objects.filter(user=owner).first()
+    if cfg is None or not cfg.bot_token_encrypted:
+        raise ValueError("The project owner has not configured the Telegram bot token yet.")
+    return decrypt_str(cfg.bot_token_encrypted)
 
 
 async def _send_file_async(token: str, chat_id: str, file_path: Path, caption: str | None = None):
@@ -36,10 +58,10 @@ async def _send_file_async(token: str, chat_id: str, file_path: Path, caption: s
         )
 
 
-def send_job_to_telegram(job: DownloadJob, cfg: TelegramConfig) -> None:
-    if not cfg.bot_token_encrypted or not cfg.chat_id:
-        raise ValueError("Telegram is not configured.")
-    token = decrypt_str(cfg.bot_token_encrypted)
+def send_job_to_telegram(job: DownloadJob, user_cfg: TelegramConfig) -> None:
+    if not user_cfg.chat_id:
+        raise ValueError("Telegram receiver (chat or channel ID) is not configured.")
+    token = get_owner_bot_token()
     root = settings.MEDIA_ROOT
     rel = job.file_path
     if not rel:
@@ -47,7 +69,7 @@ def send_job_to_telegram(job: DownloadJob, cfg: TelegramConfig) -> None:
     path = root / rel
     if not path.is_file():
         raise ValueError("File missing on disk.")
-    _run(_send_file_async(token, cfg.chat_id, path, caption=job.title))
+    _run(_send_file_async(token, user_cfg.chat_id, path, caption=job.title))
 
 
 def maybe_auto_send(job: DownloadJob) -> None:
@@ -55,11 +77,15 @@ def maybe_auto_send(job: DownloadJob) -> None:
         cfg = TelegramConfig.objects.get(user=job.user, enabled=True, auto_send=True)
     except TelegramConfig.DoesNotExist:
         return
-    if not cfg.bot_token_encrypted:
+    if not cfg.chat_id:
+        return
+    try:
+        get_owner_bot_token()
+    except ValueError:
         return
     try:
         send_job_to_telegram(job, cfg)
-        DownloadJob.objects.filter(pk=job.pk).update(sent_to_telegram=True)
+        DownloadJob.objects.filter(pk=job.pk).update(sent_to_telegram=True, telegram_sent_at=timezone.now())
     except Exception:
         logging.getLogger(__name__).exception("Auto Telegram send failed")
 

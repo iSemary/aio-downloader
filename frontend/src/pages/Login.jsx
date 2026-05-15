@@ -1,5 +1,7 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { KeyRound, LogIn, Mail } from 'lucide-react'
 import { toast } from 'sonner'
 import { api } from '@/api/client'
 import { Button } from '@/components/ui/button'
@@ -9,6 +11,7 @@ import { Label } from '@/components/ui/label'
 import { useAuthStore } from '@/store/useAuthStore'
 
 export default function LoginPage() {
+  const { t } = useTranslation()
   const access = useAuthStore((s) => s.access)
   const setAuth = useAuthStore((s) => s.setAuth)
   const navigate = useNavigate()
@@ -36,18 +39,29 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-svh items-center justify-center bg-muted/30 p-4">
-      <Card className="w-full max-w-md border-l-4 border-l-primary">
-        <CardHeader>
-          <CardTitle>Sign in</CardTitle>
-          <CardDescription>Use your account email and password.</CardDescription>
+    <div className="flex min-h-svh items-center justify-center bg-muted/30 p-4 py-8">
+      <Card className="w-full max-w-md overflow-hidden border-border/80 shadow-sm sm:border-l-4 sm:border-l-primary">
+        <CardHeader className="space-y-4 border-b bg-muted/30 pb-6">
+          <div className="flex items-start gap-3">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary ring-1 ring-primary/20">
+              <LogIn className="size-5" aria-hidden />
+            </div>
+            <div className="min-w-0 space-y-1">
+              <CardTitle className="text-xl">{t('auth.signInTitle')}</CardTitle>
+              <CardDescription className="text-pretty">{t('auth.signInDescription')}</CardDescription>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent>
-          <form className="grid gap-4" onSubmit={onSubmit}>
+        <CardContent className="pt-6">
+          <form className="grid gap-5" onSubmit={onSubmit}>
             <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="flex items-center gap-2">
+                <Mail className="size-4 text-muted-foreground" aria-hidden />
+                {t('auth.email')}
+              </Label>
               <Input
                 id="email"
+                className="min-h-11"
                 type="email"
                 autoComplete="email"
                 placeholder="test@example.com"
@@ -57,24 +71,29 @@ export default function LoginPage() {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="flex items-center gap-2">
+                <KeyRound className="size-4 text-muted-foreground" aria-hidden />
+                {t('auth.password')}
+              </Label>
               <Input
                 id="password"
+                className="min-h-11"
                 type="password"
                 autoComplete="current-password"
-                placeholder="Enter your password"
+                placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
             </div>
-            <Button type="submit" disabled={loading}>
-              {loading ? 'Signing in…' : 'Sign in'}
+            <Button type="submit" className="min-h-11 w-full gap-2" disabled={loading}>
+              <LogIn className="size-4 shrink-0" aria-hidden />
+              {loading ? t('auth.signingIn') : t('auth.signIn')}
             </Button>
             <p className="text-center text-sm text-muted-foreground">
-              No account?{' '}
-              <Link className="underline" to="/register">
-                Register
+              {t('auth.noAccount')}{' '}
+              <Link className="font-medium text-foreground underline-offset-4 hover:underline" to="/register">
+                {t('auth.registerLink')}
               </Link>
             </p>
           </form>

@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 
 User = get_user_model()
+OWNER_ROLE = User.Role.OWNER
 
 DEFAULT_EMAIL = "test@example.com"
 DEFAULT_PASSWORD = "testpassword123"
@@ -52,6 +53,7 @@ class Command(BaseCommand):
                 password=password,
                 first_name="Test",
                 last_name="User",
+                role=OWNER_ROLE,
             )
             self.stdout.write(self.style.SUCCESS(f"Created test user: {email}"))
             return
@@ -65,5 +67,6 @@ class Command(BaseCommand):
             return
 
         user.set_password(password)
-        user.save(update_fields=["password"])
+        user.role = OWNER_ROLE
+        user.save(update_fields=["password", "role"])
         self.stdout.write(self.style.SUCCESS(f"Reset password for test user: {email}"))

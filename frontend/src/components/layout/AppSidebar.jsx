@@ -6,7 +6,11 @@ import {
   HardDrive,
   History,
   LayoutDashboard,
+  Library,
+  ListOrdered,
+  ListPlus,
   LogOut,
+  ScanSearch,
   Settings,
 } from 'lucide-react'
 import { LogoMark } from '@/components/layout/LogoMark'
@@ -34,6 +38,10 @@ import {
 
 const navItems = [
   { to: '/dashboard', key: 'dashboard', icon: LayoutDashboard },
+  { to: '/queue', key: 'queue', icon: ListOrdered },
+  { to: '/bulk-add', key: 'bulkAdd', icon: ListPlus },
+  { to: '/analyze', key: 'analyze', icon: ScanSearch },
+  { to: '/playlists', key: 'playlists', icon: Library },
   { to: '/history', key: 'history', icon: History },
   { to: '/storage', key: 'storage', icon: HardDrive },
   { to: '/settings', key: 'settings', icon: Settings },

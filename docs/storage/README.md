@@ -11,9 +11,11 @@ storage/
       …downloaded files…
     instagram/
       …
+    http/
+      …direct HTTP downloads (see downloader docs)…
 ```
 
-New downloads are written under `MEDIA_ROOT/<user_uuid>/<platform>/` by `apps.downloader.ytdlp_utils.job_output_dir`.
+New downloads are written under `MEDIA_ROOT/<user_uuid>/<platform>/` by `apps.downloader.ytdlp_utils.job_output_dir` (yt-dlp), or under `MEDIA_ROOT/<user_uuid>/http/` for the native HTTP engine (`apps.downloader.http_download`).
 
 Older rows may still reference legacy paths (without a UUID prefix); the storage delete API allows those paths only when a `DownloadJob` owned by the same user points at that path.
 

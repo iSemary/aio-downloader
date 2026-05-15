@@ -4,7 +4,9 @@ import { useTranslation } from 'react-i18next'
 import { api } from '@/api/client'
 import { AppSidebar } from '@/components/layout/AppSidebar'
 import { DashboardSiteHeader } from '@/components/layout/DashboardSiteHeader'
+import { syncDashboardHeader } from '@/lib/syncDashboardHeader'
 import { useAuthStore } from '@/store/useAuthStore'
+import { useDashboardHeaderStore } from '@/store/useDashboardHeaderStore'
 import { applyTheme, useThemeStore } from '@/store/useThemeStore'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 
@@ -23,6 +25,18 @@ export function AppLayout() {
       .then((r) => setUser(r.data))
       .catch(() => {})
   }, [access, setUser])
+
+  useEffect(() => {
+    if (!access) {
+      useDashboardHeaderStore.getState().reset()
+      return undefined
+    }
+    void syncDashboardHeader()
+    const timer = setInterval(() => {
+      void syncDashboardHeader()
+    }, 15000)
+    return () => clearInterval(timer)
+  }, [access])
 
   useEffect(() => {
     applyTheme(theme)

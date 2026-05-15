@@ -5,18 +5,18 @@ import {
   BarChart3,
   CheckCircle2,
   ClipboardPaste,
+  Clock,
   Film,
   HardDrive,
   Image as ImageIcon,
+  Inbox,
   Layers,
-  LineChart as LineChartIcon,
   Link2,
   Loader2,
   Music2,
   PieChart as PieChartIcon,
   Send,
   StopCircle,
-  XCircle,
 } from 'lucide-react'
 import {
   Bar,
@@ -29,12 +29,14 @@ import {
   Pie,
   PieChart,
   ResponsiveContainer,
-  Tooltip,
+  Tooltip as RechartsTooltip,
   XAxis,
   YAxis,
 } from 'recharts'
+import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import { api } from '@/api/client'
+import { syncDashboardHeader } from '@/lib/syncDashboardHeader'
 import { JobWebSocketListener } from '@/components/JobWebSocketListener'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -45,8 +47,10 @@ import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { formatDuration } from '@/lib/formatDuration'
 import { formatBytes } from '@/lib/formatBytes'
+import { formatBps, sumActiveDownloadSpeedBps } from '@/lib/parseSpeed'
 import { cn } from '@/lib/utils'
 import { useDownloadStore } from '@/store/useDownloadStore'
 import { useAuthStore } from '@/store/useAuthStore'
@@ -57,40 +61,92 @@ const PLATFORM_COLORS = {
   tiktok: '#06b6d4',
   facebook: '#3b82f6',
   twitter: '#0f172a',
+  http: '#6366f1',
   generic: '#64748b',
 }
 
-function formatDuration(seconds) {
-  if (seconds == null || Number.isNaN(Number(seconds))) return null
-  const s = Math.round(Number(seconds))
-  const h = Math.floor(s / 3600)
-  const m = Math.floor((s % 3600) / 60)
-  const sec = s % 60
-  if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`
-  return `${m}:${String(sec).padStart(2, '0')}`
+function formatApproxEta(seconds) {
+  if (seconds == null || !Number.isFinite(seconds) || seconds <= 0) return null
+  const m = Math.ceil(seconds / 60)
+  if (m < 60) return `~${m} min`
+  const h = Math.floor(m / 60)
+  const rm = m % 60
+  if (rm === 0) return `~${h}h`
+  return `~${h}h ${rm}m`
 }
 
-function StatCard({ title, value, delta, accent, icon: Icon, sinceRefresh, noChange }) {
+function buildHeatmapColumns(heatmap) {
+  if (!heatmap?.length) return []
+  const byDate = Object.fromEntries(heatmap.map((h) => [h.date, h.count]))
+  const first = heatmap[0].date
+  const last = heatmap[heatmap.length - 1].date
+  const start = new Date(`${first}T12:00:00`)
+  const end = new Date(`${last}T12:00:00`)
+  const gridStart = new Date(start)
+  gridStart.setDate(gridStart.getDate() - gridStart.getDay())
+  const totalDays = Math.floor((end - gridStart) / 86400000) + 1
+  const numCols = Math.ceil(totalDays / 7)
+  const columns = []
+  for (let w = 0; w < numCols; w += 1) {
+    const week = []
+    for (let r = 0; r < 7; r += 1) {
+      const d = new Date(gridStart)
+      d.setDate(d.getDate() + w * 7 + r)
+      const iso = d.toISOString().slice(0, 10)
+      const inRange = iso >= first && iso <= last
+      week.push({ date: iso, count: inRange ? (byDate[iso] ?? 0) : null })
+    }
+    columns.push(week)
+  }
+  return columns
+}
+
+function ContributionHeatmap({ heatmap, t }) {
+  const columns = useMemo(() => buildHeatmapColumns(heatmap), [heatmap])
+  const maxCount = useMemo(() => {
+    const nums = heatmap.map((h) => h.count).filter((n) => n > 0)
+    return nums.length ? Math.max(...nums) : 1
+  }, [heatmap])
+
+  if (!heatmap.length) {
+    return <p className="text-sm text-muted-foreground">{t('dashboard.heatmap.empty')}</p>
+  }
+
   return (
-    <Card className={cn('overflow-hidden border-s-4', accent)}>
-      <CardHeader className="pb-2">
-        <div className="flex items-start justify-between gap-2">
-          <CardDescription>{title}</CardDescription>
-          {Icon ? <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden /> : null}
-        </div>
-        <CardTitle className="text-3xl tabular-nums">{value}</CardTitle>
-      </CardHeader>
-      <CardContent className="text-xs text-muted-foreground">
-        {delta != null && delta !== 0 ? (
-          <span className={delta > 0 ? 'text-emerald-600' : 'text-rose-600'}>
-            {delta > 0 ? '+' : ''}
-            {delta} {sinceRefresh}
-          </span>
-        ) : (
-          <span>{noChange}</span>
-        )}
-      </CardContent>
-    </Card>
+    <TooltipProvider delayDuration={100}>
+      <div className="flex max-w-full gap-1 overflow-x-auto pb-1">
+        {columns.map((week, wi) => (
+          <div key={wi} className="flex flex-col gap-1">
+            {week.map((cell) => {
+              if (cell.count === null) {
+                return <div key={cell.date} className="size-3 shrink-0 rounded-sm bg-transparent" aria-hidden />
+              }
+              const intensity = cell.count === 0 ? 0 : Math.min(1, 0.25 + (cell.count / maxCount) * 0.75)
+              return (
+                <Tooltip key={cell.date}>
+                  <TooltipTrigger asChild>
+                    <div
+                      className={cn(
+                        'size-3 shrink-0 rounded-sm border border-transparent transition-colors',
+                        cell.count === 0 ? 'bg-muted' : 'border-emerald-900/10',
+                      )}
+                      style={
+                        cell.count > 0
+                          ? { backgroundColor: `rgba(16, 185, 129, ${intensity})` }
+                          : undefined
+                      }
+                    />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs">
+                    {t('dashboard.heatmap.tooltip', { date: cell.date, count: cell.count })}
+                  </TooltipContent>
+                </Tooltip>
+              )
+            })}
+          </div>
+        ))}
+      </div>
+    </TooltipProvider>
   )
 }
 
@@ -102,11 +158,7 @@ export default function DashboardPage() {
   const [analyzeBundle, setAnalyzeBundle] = useState({ forUrl: '', meta: null })
   const [analyzeLoading, setAnalyzeLoading] = useState(false)
   const [analyzeError, setAnalyzeError] = useState(null)
-  const [range, setRange] = useState('7d')
-  const [stats, setStats] = useState(null)
-  const [prevStats, setPrevStats] = useState(null)
-  const [series, setSeries] = useState([])
-  const [platforms, setPlatforms] = useState([])
+  const [dashboard, setDashboard] = useState(null)
   const [recent, setRecent] = useState([])
   const [wsIds, setWsIds] = useState([])
   const activeJobs = useDownloadStore((s) => s.activeJobs)
@@ -116,23 +168,18 @@ export default function DashboardPage() {
 
   const refresh = useCallback(async () => {
     try {
-      const [s, ts, pl, jobs] = await Promise.all([
-        api.get('/downloads/stats/'),
-        api.get('/downloads/timeseries/', { params: { range } }),
-        api.get('/downloads/platforms/'),
-        api.get('/downloads/', { params: { page_size: 8, page: 1 } }),
-      ])
-      setStats((prev) => {
-        setPrevStats(prev)
-        return s.data
-      })
-      setSeries(ts.data)
-      setPlatforms(pl.data)
-      setRecent(jobs.data.results ?? jobs.data ?? [])
+      const dashResult = await syncDashboardHeader()
+      if (!dashResult.ok) {
+        toast.error(t('dashboard.toast.loadFailed'))
+        return
+      }
+      setDashboard(dashResult.data)
+      const { data: jobs } = await api.get('/downloads/', { params: { page_size: 8, page: 1 } })
+      setRecent(jobs.results ?? jobs ?? [])
     } catch {
       toast.error(t('dashboard.toast.loadFailed'))
     }
-  }, [range, t])
+  }, [t])
 
   useEffect(() => {
     const t0 = setTimeout(() => {
@@ -144,17 +191,6 @@ export default function DashboardPage() {
       clearInterval(timer)
     }
   }, [refresh])
-
-  const deltas = useMemo(() => {
-    if (!stats || !prevStats) return { a: 0, b: 0, c: 0, d: 0, e: 0 }
-    return {
-      a: stats.urls_fetched - prevStats.urls_fetched,
-      b: stats.successfully_downloaded - prevStats.successfully_downloaded,
-      c: stats.sent_to_telegram - prevStats.sent_to_telegram,
-      d: stats.failed - prevStats.failed,
-      e: Math.round((stats.gb_stored - prevStats.gb_stored) * 1000) / 1000,
-    }
-  }, [stats, prevStats])
 
   useEffect(() => {
     const trimmed = url.trim()
@@ -262,28 +298,99 @@ export default function DashboardPage() {
     }
   }
 
-  const pieData = useMemo(() => {
-    const total = platforms.reduce((acc, p) => acc + (p.bytes || 0), 0) || 1
-    return platforms.map((p) => ({
+  const platforms = dashboard?.platforms ?? []
+  const pulse = dashboard?.pulse
+  const health = dashboard?.health
+  const largest = dashboard?.largest
+  const heatmap = dashboard?.heatmap ?? []
+  const speedHistogram = dashboard?.speed_histogram ?? []
+
+  const sortedPlatforms = useMemo(() => {
+    const list = [...platforms]
+    list.sort((a, b) => (b.total_bytes ?? b.bytes ?? 0) - (a.total_bytes ?? a.bytes ?? 0))
+    return list
+  }, [platforms])
+
+  const pieBytesData = useMemo(() => {
+    const total = sortedPlatforms.reduce((acc, p) => acc + (p.total_bytes ?? p.bytes ?? 0), 0) || 1
+    return sortedPlatforms.map((p) => {
+      const b = p.total_bytes ?? p.bytes ?? 0
+      return {
+        name: p.platform,
+        value: b,
+        pct: Math.round((b / total) * 1000) / 10,
+        kind: 'bytes',
+      }
+    })
+  }, [sortedPlatforms])
+
+  const pieCountData = useMemo(() => {
+    const total = sortedPlatforms.reduce((acc, p) => acc + (p.count || 0), 0) || 1
+    return sortedPlatforms.map((p) => ({
       name: p.platform,
-      value: p.bytes || 0,
-      pct: Math.round(((p.bytes || 0) / total) * 1000) / 10,
+      value: p.count || 0,
+      pct: Math.round(((p.count || 0) / total) * 1000) / 10,
+      kind: 'count',
     }))
-  }, [platforms])
+  }, [sortedPlatforms])
 
-  const barData = useMemo(() => {
-    const order = ['youtube', 'instagram', 'tiktok', 'facebook', 'twitter']
-    const map = Object.fromEntries(platforms.map((p) => [p.platform, (p.bytes || 0) / 1024 ** 3]))
-    return order.map((k) => ({ name: k, gb: +(map[k] || 0).toFixed(3) }))
-  }, [platforms])
-
-  const statMeta = useMemo(
-    () => ({
-      since: t('dashboard.stats.sinceRefresh'),
-      noChange: t('dashboard.stats.noChange'),
-    }),
-    [t],
+  const speedBarData = useMemo(
+    () => speedHistogram.map((b) => ({ name: b.label, count: b.count })),
+    [speedHistogram],
   )
+
+  const activeSpeedBps = useMemo(() => sumActiveDownloadSpeedBps(activeJobs), [activeJobs])
+  const downloadingWsCount = useMemo(
+    () => Object.values(activeJobs).filter((j) => j?.status === 'downloading').length,
+    [activeJobs],
+  )
+
+  const weightedAvgFileBytes = useMemo(() => {
+    let bytes = 0
+    let n = 0
+    for (const p of platforms) {
+      const c = p.count || 0
+      bytes += (p.total_bytes ?? p.bytes ?? 0)
+      n += c
+    }
+    if (!n) return null
+    return bytes / n
+  }, [platforms])
+
+  const sparklineData = useMemo(
+    () =>
+      (health?.success_rate_series_7d ?? []).map((row) => ({
+        day: row.day?.slice(5) ?? row.day,
+        rate: row.rate != null ? Math.round(row.rate * 1000) / 10 : null,
+      })),
+    [health],
+  )
+
+  const diskPct = useMemo(() => {
+    const u = health?.disk?.used_bytes
+    const tot = health?.disk?.total_bytes
+    if (!tot || tot <= 0) return 0
+    return Math.min(100, (u / tot) * 100)
+  }, [health])
+
+  const diskBarClass = useMemo(() => {
+    if (diskPct >= 95) return '[&>div]:bg-rose-500'
+    if (diskPct >= 80) return '[&>div]:bg-amber-500'
+    return '[&>div]:bg-emerald-600'
+  }, [diskPct])
+
+  const successRatePct = useMemo(() => {
+    const r = health?.success_rate_7d
+    if (r == null) return null
+    return Math.round(Number(r) * 1000) / 10
+  }, [health])
+
+  const successColorClass = useMemo(() => {
+    if (successRatePct == null) return 'text-muted-foreground'
+    if (successRatePct >= 90) return 'text-emerald-600 dark:text-emerald-400'
+    if (successRatePct >= 70) return 'text-amber-600 dark:text-amber-400'
+    return 'text-rose-600 dark:text-rose-400'
+  }, [successRatePct])
 
   return (
     <div className="flex w-full min-w-0 flex-col gap-6">
@@ -301,6 +408,11 @@ export default function DashboardPage() {
               <div className="min-w-0 space-y-1">
                 <CardTitle className="text-xl">{t('dashboard.newDownload.title')}</CardTitle>
                 <CardDescription className="text-pretty">{t('dashboard.newDownload.description')}</CardDescription>
+                <p className="pt-1 text-sm">
+                  <Link to="/bulk-add" className="text-primary underline-offset-4 hover:underline">
+                    {t('dashboard.newDownload.bulkAddLink')}
+                  </Link>
+                </p>
               </div>
             </div>
             {analyzeMeta?.ok ? (
@@ -495,105 +607,198 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-        <StatCard
-          title={t('dashboard.stats.urlsFetched')}
-          value={stats?.urls_fetched ?? '—'}
-          delta={deltas.a}
-          accent="border-s-violet-500"
-          icon={Link2}
-          sinceRefresh={statMeta.since}
-          noChange={statMeta.noChange}
-        />
-        <StatCard
-          title={t('dashboard.stats.downloaded')}
-          value={stats?.successfully_downloaded ?? '—'}
-          delta={deltas.b}
-          accent="border-s-emerald-500"
-          icon={CheckCircle2}
-          sinceRefresh={statMeta.since}
-          noChange={statMeta.noChange}
-        />
-        <StatCard
-          title={t('dashboard.stats.sentTelegram')}
-          value={stats?.sent_to_telegram ?? '—'}
-          delta={deltas.c}
-          accent="border-s-sky-500"
-          icon={Send}
-          sinceRefresh={statMeta.since}
-          noChange={statMeta.noChange}
-        />
-        <StatCard
-          title={t('dashboard.stats.failed')}
-          value={stats?.failed ?? '—'}
-          delta={deltas.d}
-          accent="border-s-rose-500"
-          icon={XCircle}
-          sinceRefresh={statMeta.since}
-          noChange={statMeta.noChange}
-        />
-        <StatCard
-          title={t('dashboard.stats.gbStored')}
-          value={stats?.gb_stored ?? '—'}
-          delta={deltas.e}
-          accent="border-s-amber-500"
-          icon={HardDrive}
-          sinceRefresh={statMeta.since}
-          noChange={statMeta.noChange}
-        />
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <Card className="overflow-hidden border-s-4 border-s-primary">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between gap-2">
+              <CardDescription>{t('dashboard.pulse.activeTitle')}</CardDescription>
+              {(pulse?.downloading_count ?? 0) > 0 ? (
+                <Loader2 className="size-4 shrink-0 animate-spin text-primary" aria-hidden />
+              ) : (
+                <Activity className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+              )}
+            </div>
+            <CardTitle className="text-3xl tabular-nums">{pulse?.downloading_count ?? '—'}</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground">
+            {t('dashboard.pulse.activeLine', { speed: formatBps(activeSpeedBps) ?? '—' })}
+          </CardContent>
+        </Card>
+
+        <Card className="overflow-hidden border-s-4 border-s-violet-500">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between gap-2">
+              <CardDescription>{t('dashboard.pulse.queueTitle')}</CardDescription>
+              <Inbox className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+            </div>
+            <CardTitle className="text-3xl tabular-nums">{pulse?.pending_count ?? '—'}</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground">
+            {pulse?.queue_clear_eta_seconds
+              ? t('dashboard.pulse.queueEta', { eta: formatApproxEta(pulse.queue_clear_eta_seconds) })
+              : t('dashboard.pulse.queueEtaUnknown')}
+          </CardContent>
+        </Card>
+
+        <Card className="overflow-hidden border-s-4 border-s-emerald-500">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between gap-2">
+              <CardDescription>{t('dashboard.pulse.todayTitle')}</CardDescription>
+              <CheckCircle2 className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+            </div>
+            <CardTitle className="text-3xl tabular-nums">{pulse?.today?.files ?? '—'}</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground">
+            {t('dashboard.pulse.todayLine', { size: formatBytes(pulse?.today?.bytes ?? 0) })}
+          </CardContent>
+        </Card>
+
+        <Card className="overflow-hidden border-s-4 border-s-sky-500">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between gap-2">
+              <CardDescription>{t('dashboard.pulse.telegramTitle')}</CardDescription>
+              <Send className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+            </div>
+            <CardTitle className="text-3xl tabular-nums">{pulse?.today?.telegram_pending ?? '—'}</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground">
+            {t('dashboard.pulse.telegramLine', { sent: pulse?.today?.telegram_sent_today ?? 0 })}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>{t('dashboard.health.successTitle')}</CardDescription>
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <CardTitle className={cn('text-4xl tabular-nums', successColorClass)}>
+                {successRatePct != null ? `${successRatePct}%` : '—'}
+              </CardTitle>
+              <div className="h-14 min-w-[7rem] flex-1">
+                {sparklineData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={sparklineData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+                      <XAxis dataKey="day" hide />
+                      <Line
+                        type="monotone"
+                        dataKey="rate"
+                        stroke="hsl(var(--primary))"
+                        strokeWidth={2}
+                        dot={false}
+                        connectNulls={false}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : null}
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="text-xs text-muted-foreground">{t('dashboard.health.successHint')}</CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between gap-2">
+              <CardDescription>{t('dashboard.health.diskTitle')}</CardDescription>
+              <HardDrive className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+            </div>
+            <CardTitle className="text-lg tabular-nums">
+              {formatBytes(health?.disk?.used_bytes ?? 0)} / {formatBytes(health?.disk?.total_bytes ?? 0)}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <Progress value={diskPct} className={cn('h-2', diskBarClass)} />
+            <p className="text-xs text-muted-foreground">{t('dashboard.health.diskHint')}</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between gap-2">
+              <CardDescription>{t('dashboard.health.avgSizeTitle')}</CardDescription>
+              <BarChart3 className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+            </div>
+            <CardTitle className="text-2xl tabular-nums">
+              {weightedAvgFileBytes != null ? formatBytes(weightedAvgFileBytes) : '—'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    className="text-xs text-muted-foreground underline decoration-dotted underline-offset-2"
+                  >
+                    {t('dashboard.health.avgSizeHint')}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-sm">
+                  <ul className="space-y-1 text-left">
+                    {sortedPlatforms.map((p) => {
+                      const c = p.count || 0
+                      if (!c) return null
+                      const b = p.total_bytes ?? p.bytes ?? 0
+                      return (
+                        <li key={p.platform} className="flex justify-between gap-4 capitalize">
+                          <span>{p.platform}</span>
+                          <span className="tabular-nums">{formatBytes(b / c)}</span>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between gap-2">
+              <CardDescription>{t('dashboard.health.largestTitle')}</CardDescription>
+              <Layers className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {largest?.id ? (
+              <>
+                <Link
+                  to={`/jobs/${largest.id}`}
+                  className="line-clamp-2 font-medium text-foreground underline-offset-4 hover:underline"
+                >
+                  {largest.title || t('dashboard.newDownload.untitled')}
+                </Link>
+                <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                  <span className="tabular-nums">{formatBytes(largest.file_size)}</span>
+                  <Badge variant="secondary" className="capitalize">
+                    {largest.platform}
+                  </Badge>
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">{t('dashboard.health.largestEmpty')}</p>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
-          <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-4 space-y-0">
+          <CardHeader>
             <div className="flex items-start gap-3">
               <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted">
-                <LineChartIcon className="size-5 text-muted-foreground" aria-hidden />
+                <Clock className="size-5 text-muted-foreground" aria-hidden />
               </div>
               <div>
-                <CardTitle>{t('dashboard.activity.title')}</CardTitle>
-                <CardDescription>{t('dashboard.activity.description')}</CardDescription>
+                <CardTitle>{t('dashboard.heatmap.title')}</CardTitle>
+                <CardDescription>{t('dashboard.heatmap.description')}</CardDescription>
               </div>
             </div>
-            <Tabs value={range} onValueChange={setRange}>
-              <TabsList>
-                <TabsTrigger value="7d">{t('dashboard.activity.range7d')}</TabsTrigger>
-                <TabsTrigger value="30d">{t('dashboard.activity.range30d')}</TabsTrigger>
-                <TabsTrigger value="all">{t('dashboard.activity.rangeAll')}</TabsTrigger>
-              </TabsList>
-            </Tabs>
           </CardHeader>
-          <CardContent className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={series}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis dataKey="day" tickFormatter={(v) => (v ? String(v).slice(0, 10) : '')} />
-                <YAxis allowDecimals={false} />
-                <Tooltip />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="downloaded"
-                  stroke="#10b981"
-                  name={t('dashboard.activity.legendDownloaded')}
-                  dot={false}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="sent_tg"
-                  stroke="#0ea5e9"
-                  name={t('dashboard.activity.legendSentTg')}
-                  dot={false}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="failed"
-                  stroke="#f43f5e"
-                  name={t('dashboard.activity.legendFailed')}
-                  dot={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+          <CardContent>
+            <ContributionHeatmap heatmap={heatmap} t={t} />
           </CardContent>
         </Card>
 
@@ -605,23 +810,62 @@ export default function DashboardPage() {
               </div>
               <div>
                 <CardTitle>{t('dashboard.donut.title')}</CardTitle>
-                <CardDescription>{t('dashboard.donut.description')}</CardDescription>
+                <CardDescription>{t('dashboard.donut.dualDescription')}</CardDescription>
               </div>
             </div>
           </CardHeader>
-          <CardContent className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Tooltip formatter={(v, _n, p) => [formatBytes(p.payload.value), p.payload.name]} />
-                <Pie data={pieData} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={2}>
-                  {pieData.map((entry, index) => (
-                    <Cell key={entry.name + index} fill={PLATFORM_COLORS[entry.name] || PLATFORM_COLORS.generic} />
-                  ))}
-                </Pie>
-              </PieChart>
-            </ResponsiveContainer>
+          <CardContent className="space-y-2">
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <RechartsTooltip
+                    formatter={(value, name, item) => {
+                      const kind = item?.payload?.kind
+                      if (kind === 'bytes') return [formatBytes(Number(value)), name]
+                      if (kind === 'count') return [`${value} files`, name]
+                      return [value, name]
+                    }}
+                  />
+                  <Pie
+                    data={pieCountData}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={44}
+                    outerRadius={58}
+                    paddingAngle={1}
+                  >
+                    {pieCountData.map((entry, index) => (
+                      <Cell
+                        key={`c-${entry.name + index}`}
+                        fill={PLATFORM_COLORS[entry.name] || PLATFORM_COLORS.generic}
+                      />
+                    ))}
+                  </Pie>
+                  <Pie
+                    data={pieBytesData}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={60}
+                    outerRadius={86}
+                    paddingAngle={1}
+                  >
+                    {pieBytesData.map((entry, index) => (
+                      <Cell
+                        key={`b-${entry.name + index}`}
+                        fill={PLATFORM_COLORS[entry.name] || PLATFORM_COLORS.generic}
+                      />
+                    ))}
+                  </Pie>
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
             <div className="text-center text-sm text-muted-foreground">
-              {t('dashboard.donut.total')} {formatBytes(platforms.reduce((a, p) => a + (p.bytes || 0), 0))}
+              {t('dashboard.donut.innerLegend')} · {t('dashboard.donut.outerLegend')}
+            </div>
+            <div className="text-center text-xs text-muted-foreground">
+              {t('dashboard.donut.total')}{' '}
+              {formatBytes(sortedPlatforms.reduce((a, p) => a + (p.total_bytes ?? p.bytes ?? 0), 0))}
             </div>
           </CardContent>
         </Card>
@@ -634,25 +878,25 @@ export default function DashboardPage() {
               <BarChart3 className="size-5 text-muted-foreground" aria-hidden />
             </div>
             <div>
-              <CardTitle>{t('dashboard.platformBars.title')}</CardTitle>
-              <CardDescription>{t('dashboard.platformBars.description')}</CardDescription>
+              <CardTitle>{t('dashboard.speed.title')}</CardTitle>
+              <CardDescription>{t('dashboard.speed.description')}</CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={barData}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="gb" radius={[6, 6, 0, 0]} animationDuration={800}>
-                {barData.map((e) => (
-                  <Cell key={e.name} fill={PLATFORM_COLORS[e.name] || PLATFORM_COLORS.generic} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+          {speedBarData.some((b) => b.count > 0) ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={speedBarData} margin={{ top: 8, right: 8, bottom: 40, left: 8 }}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis dataKey="name" interval={0} angle={-25} textAnchor="end" height={60} tick={{ fontSize: 10 }} />
+                <YAxis allowDecimals={false} />
+                <RechartsTooltip />
+                <Bar dataKey="count" radius={[6, 6, 0, 0]} fill="hsl(var(--primary))" />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <p className="text-sm text-muted-foreground">{t('dashboard.speed.empty')}</p>
+          )}
         </CardContent>
       </Card>
 
@@ -718,8 +962,15 @@ export default function DashboardPage() {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>{t('dashboard.recent.title')}</CardTitle>
-            <CardDescription>{t('dashboard.recent.description')}</CardDescription>
+            <div className="flex items-start gap-3">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted">
+                <Clock className="size-5 text-muted-foreground" aria-hidden />
+              </div>
+              <div>
+                <CardTitle>{t('dashboard.recent.title')}</CardTitle>
+                <CardDescription>{t('dashboard.recent.description')}</CardDescription>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             <Table>
@@ -768,13 +1019,14 @@ export default function DashboardPage() {
               <p className="text-sm text-muted-foreground">{t('dashboard.breakdown.empty')}</p>
             ) : (
               platforms.map((p) => {
-                const max = Math.max(...platforms.map((x) => x.bytes || 0), 1)
-                const pct = ((p.bytes || 0) / max) * 100
+                const max = Math.max(...platforms.map((x) => x.total_bytes ?? x.bytes ?? 0), 1)
+                const b = p.total_bytes ?? p.bytes ?? 0
+                const pct = (b / max) * 100
                 return (
                   <div key={p.platform}>
                     <div className="mb-1 flex justify-between text-sm">
                       <span className="capitalize">{p.platform}</span>
-                      <span>{((p.bytes || 0) / 1024 ** 3).toFixed(2)} GB</span>
+                      <span>{(b / 1024 ** 3).toFixed(2)} GB</span>
                     </div>
                     <div className="h-2 overflow-hidden rounded-full bg-muted">
                       <div

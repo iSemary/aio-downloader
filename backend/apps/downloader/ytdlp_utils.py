@@ -396,7 +396,7 @@ def run_download(job, progress_hook) -> dict:
         opts.pop("merge_output_format", None)
 
     with yt_dlp.YoutubeDL(opts) as ydl:
-        info = ydl.extract_info(job.url, download=True)
+        info = ydl.extract_info(job.source_url, download=True)
 
     requested = str(
         out_dir
@@ -415,7 +415,7 @@ def run_download(job, progress_hook) -> dict:
         "filepath": rel.replace("\\", "/"),
         "filesize": size,
         "title": info.get("title") or job.title,
-        "platform": detect_platform(job.url),
+        "platform": detect_platform(job.source_url),
     }
 
 
@@ -432,20 +432,19 @@ def create_jobs_from_url(url: str, user, format: str, quality: str) -> tuple[lis
     if probe.get("is_playlist") and len(entries) > 1:
         parent = DownloadJob.objects.create(
             user=user,
-            url=url,
+            source_url=url,
             title=probe.get("title") or "Playlist",
             platform=detect_platform(url),
             format=format,
             quality=quality,
             status=DownloadJob.Status.PROCESSING,
-            progress=0,
         )
         return [], parent
 
     e = entries[0]
     job = DownloadJob.objects.create(
         user=user,
-        url=e["url"],
+        source_url=e["url"],
         title=(e.get("title") or probe.get("title") or "")[:512],
         platform=e.get("platform") or detect_platform(url),
         format=format,
