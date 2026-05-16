@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
@@ -71,6 +72,22 @@ export default function GrabberProjectForm({ open, onOpenChange, project, onSubm
     } : defaultValues,
   })
 
+  const urlValue = form.watch('start_url')
+
+  useEffect(() => {
+    if (isEdit) return
+    try {
+      const url = new URL(urlValue)
+      const hostname = url.hostname
+      const currentName = form.getValues('name')
+      if (hostname && !currentName) {
+        form.setValue('name', hostname, { shouldValidate: false })
+      }
+    } catch {
+      // invalid URL, do nothing
+    }
+  }, [urlValue, isEdit, form])
+
   const handleSubmit = form.handleSubmit((data) => {
     onSubmit(data)
   })
@@ -88,15 +105,15 @@ export default function GrabberProjectForm({ open, onOpenChange, project, onSubm
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-3">
             <div className="space-y-2">
-              <Label>{t('grabber.projectName')}</Label>
-              <Input {...form.register('name')} placeholder={t('grabber.projectNamePlaceholder')} />
-              {form.formState.errors.name && <p className="text-xs text-destructive">{form.formState.errors.name.message}</p>}
+              <Label>{t('grabber.startUrl')}</Label>
+              <Input {...form.register('start_url')} placeholder="https://example.com" autoFocus={!isEdit} />
+              {form.formState.errors.start_url && <p className="text-xs text-destructive">{form.formState.errors.start_url.message}</p>}
             </div>
 
             <div className="space-y-2">
-              <Label>{t('grabber.startUrl')}</Label>
-              <Input {...form.register('start_url')} placeholder="https://example.com" />
-              {form.formState.errors.start_url && <p className="text-xs text-destructive">{form.formState.errors.start_url.message}</p>}
+              <Label>{t('grabber.projectName')}</Label>
+              <Input {...form.register('name')} placeholder={t('grabber.projectNamePlaceholder')} />
+              {form.formState.errors.name && <p className="text-xs text-destructive">{form.formState.errors.name.message}</p>}
             </div>
           </div>
 

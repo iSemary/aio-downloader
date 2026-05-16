@@ -61,13 +61,24 @@ describe('AppSidebar', () => {
     expect(automationItems.length).toBe(2)
   })
 
-  it('nav items include main application routes', async () => {
+  it('top items include dashboard and queue', async () => {
+    const { topItems } = await import('../AppSidebar')
+    
+    expect(topItems).toBeDefined()
+    expect(topItems.length).toBe(2)
+    const paths = topItems.map(item => item.to)
+    expect(paths).toContain('/dashboard')
+    expect(paths).toContain('/queue')
+  })
+
+  it('nav items include remaining application routes', async () => {
     const { navItems } = await import('../AppSidebar')
     
     const paths = navItems.map(item => item.to)
-    expect(paths).toContain('/dashboard')
-    expect(paths).toContain('/queue')
+    expect(paths).toContain('/bulk-add')
+    expect(paths).toContain('/analyze')
     expect(paths).toContain('/history')
+    expect(paths).toContain('/storage')
     expect(paths).toContain('/settings')
   })
 })

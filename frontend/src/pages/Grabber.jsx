@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, Globe, Loader2, Plus, ScanSearch } from 'lucide-react'
+import { AlertCircle, ArrowLeft, Globe, Loader2, Plus, ScanSearch } from 'lucide-react'
 import { toast } from 'sonner'
+import { useNavigate, useParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -26,6 +27,8 @@ import {
 
 export default function GrabberPage() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
+  const { projectId: urlProjectId } = useParams()
   const {
     projects,
     currentProject,
@@ -48,11 +51,9 @@ export default function GrabberPage() {
     queueDownload,
     queueBulkDownload,
     deleteFile,
-    setCurrentProject,
+    fetchLogs,
   } = useGrabberStore()
 
-  const [view, setView] = useState('list')
-  const [projectId, setProjectId] = useState(null)
   const [formOpen, setFormOpen] = useState(false)
   const [editProject, setEditProject] = useState(null)
   const [saving, setSaving] = useState(false)
@@ -62,44 +63,104 @@ export default function GrabberPage() {
   const [deleteConfirm, setDeleteConfirm] = useState(null)
   const [filesLoading, setFilesLoading] = useState(false)
   const [filterChanged, setFilterChanged] = useState(0)
+  const [showErrorDetails, setShowErrorDetails] = useState(false)
+  const [errorDetailsProject, setErrorDetailsProject] = useState(null)
+  const [logs, setLogs] = useState([])
+  const [logsLoading, setLogsLoading] = useState(false)
+
+  // pagination & file filter state
+  const [page, setPage] = useState(1)
+  const [pageSize] = useState(50)
+  const [totalFiles, setTotalFiles] = useState(0)
+  const [fileSearch, setFileSearch] = useState('')
+  const [fileTypeFilter, setFileTypeFilter] = useState('all')
+  const [fileStatusFilter, setFileStatusFilter] = useState('all')
+
+  const isDetailView = !!urlProjectId
 
   useEffect(() => {
     fetchProjects()
   }, [fetchProjects])
 
   useEffect(() => {
-    if (currentProject && view === 'detail') {
-      loadProjectData(currentProject.id)
+    if (urlProjectId && urlProjectId !== currentProject?.id) {
+      fetchProject(urlProjectId)
     }
-  }, [currentProject?.id, view, filterChanged])
+  }, [urlProjectId, fetchProject])
 
   const loadProjectData = async (id) => {
-    setFilesLoading(true)
     try {
-      const [statsData, filterData, filesData] = await Promise.all([
+      const [statsData, filterData] = await Promise.all([
         fetchProjectStats(id).catch(() => null),
         fetchFilters(id).catch(() => []),
-        fetchFiles(id, { page_size: 500 }).catch(() => ({ results: [] })),
       ])
       setStats(statsData)
       setFilters(Array.isArray(filterData) ? filterData : [])
-    } finally {
-      setFilesLoading(false)
+    } catch {
+      // ignore
     }
   }
 
+  const loadFiles = useCallback(async (id) => {
+    setFilesLoading(true)
+    try {
+      const params = { page, page_size: pageSize }
+      if (fileSearch) params.search = fileSearch
+      if (fileTypeFilter !== 'all') params.file_type = fileTypeFilter
+      if (fileStatusFilter !== 'all') params.status = fileStatusFilter
+      const data = await fetchFiles(id, params)
+      setTotalFiles(data.count || 0)
+    } catch {
+      setTotalFiles(0)
+    } finally {
+      setFilesLoading(false)
+    }
+  }, [page, pageSize, fileSearch, fileTypeFilter, fileStatusFilter, fetchFiles])
+
+  useEffect(() => {
+    if (currentProject && isDetailView && currentProject.id === urlProjectId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      loadProjectData(currentProject.id)
+    }
+  }, [isDetailView, urlProjectId, filterChanged])
+
+  useEffect(() => {
+    if (currentProject && isDetailView && currentProject.id === urlProjectId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      loadFiles(currentProject.id)
+    }
+  }, [currentProject?.id, isDetailView, urlProjectId, page, fileSearch, fileTypeFilter, fileStatusFilter])
+
+  useEffect(() => {
+    if (!urlProjectId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setStats(null)
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setFilters([])
+    }
+  }, [urlProjectId])
+
   const openProject = useCallback(async (id) => {
-    setProjectId(id)
-    setView('detail')
-    await fetchProject(id)
-  }, [fetchProject])
+    navigate(`/grabber/${id}`)
+  }, [navigate])
+
+  const handleOpenErrorDetails = useCallback(async (project) => {
+    setErrorDetailsProject(project)
+    setShowErrorDetails(true)
+    setLogsLoading(true)
+    try {
+      const logData = await fetchLogs(project.id)
+      setLogs(logData)
+    } catch {
+      setLogs([])
+    } finally {
+      setLogsLoading(false)
+    }
+  }, [fetchLogs])
 
   const backToList = useCallback(() => {
-    setView('list')
-    setProjectId(null)
-    setCurrentProject(null)
-    setStats(null)
-  }, [])
+    navigate('/grabber')
+  }, [navigate])
 
   const handleCreate = async (data) => {
     setSaving(true)
@@ -170,7 +231,7 @@ export default function GrabberPage() {
     try {
       await deleteProject(deleteConfirm)
       setDeleteConfirm(null)
-      if (view === 'detail' && projectId === deleteConfirm) {
+      if (isDetailView && urlProjectId === deleteConfirm) {
         backToList()
       }
       toast.success(t('grabber.projectDeleted'))
@@ -263,7 +324,7 @@ export default function GrabberPage() {
     return `${size.toFixed(1)} ${units[i]}`
   }
 
-  if (view === 'detail' && currentProject) {
+  if (isDetailView && currentProject) {
     const p = currentProject
     return (
       <div className="flex w-full min-w-0 flex-col gap-6">
@@ -306,10 +367,20 @@ export default function GrabberPage() {
               </Button>
             </>
           )}
-          {(p.status === 'done' || p.status === 'error') && (
+          {p.status === 'done' && (
             <Button onClick={() => handleStart(p.id)}>
               <Globe className="mr-1.5 size-4" /> {t('grabber.restart')}
             </Button>
+          )}
+          {p.status === 'error' && (
+            <>
+              <Button variant="destructive" onClick={() => handleStart(p.id)}>
+                <Globe className="mr-1.5 size-4" /> {t('grabber.retry')}
+              </Button>
+              <Button variant="outline" onClick={() => handleOpenErrorDetails(p)}>
+                <AlertCircle className="mr-1.5 size-4" /> {t('grabber.viewDetails')}
+              </Button>
+            </>
           )}
           <Button variant="outline" onClick={() => { setEditProject(p); setFormOpen(true) }}>
             {t('grabber.edit')}
@@ -344,7 +415,17 @@ export default function GrabberPage() {
               onDownload={handleFileDownload}
               onDownloadBulk={handleBulkDownload}
               onDelete={handleFileDelete}
-              onRefresh={() => loadProjectData(p.id)}
+              onRefresh={() => { setPage(1); setFilterChanged((c) => c + 1) }}
+              page={page}
+              pageSize={pageSize}
+              totalFiles={totalFiles}
+              onPageChange={setPage}
+              search={fileSearch}
+              onSearchChange={setFileSearch}
+              typeFilter={fileTypeFilter}
+              onTypeFilterChange={setFileTypeFilter}
+              statusFilter={fileStatusFilter}
+              onStatusFilterChange={setFileStatusFilter}
             />
           </TabsContent>
 
@@ -396,6 +477,59 @@ export default function GrabberPage() {
           onSubmit={handleUpdate}
           loading={saving}
         />
+
+        <AlertDialog open={showErrorDetails} onOpenChange={setShowErrorDetails}>
+          <AlertDialogContent className="max-w-2xl">
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t('grabber.errorDetails')}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {t('grabber.errorDetailsDesc')}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="max-h-80 space-y-3 overflow-y-auto">
+              {(errorDetailsProject || p).error_message ? (
+                <div>
+                  <p className="mb-1 text-sm font-medium text-foreground">{t('grabber.errorMessage')}</p>
+                  <pre className="whitespace-pre-wrap rounded-md bg-destructive/10 p-3 text-sm text-destructive">{(errorDetailsProject || p).error_message}</pre>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">{t('grabber.noErrorDetails')}</p>
+              )}
+              {stats?.crawl_task_counts?.error > 0 && (
+                <div>
+                  <p className="mb-1 text-sm font-medium text-foreground">{t('grabber.failedTasks')}</p>
+                  <p className="text-sm text-muted-foreground">{t('grabber.failedTasksCount', { count: stats.crawl_task_counts.error })}</p>
+                </div>
+              )}
+              <div>
+                <p className="mb-1 text-sm font-medium text-foreground">{t('grabber.crawlLogs')}</p>
+                {logsLoading ? (
+                  <p className="text-sm text-muted-foreground">{t('grabber.loadingLogs')}</p>
+                ) : logs.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">{t('grabber.noLogs')}</p>
+                ) : (
+                  <div className="space-y-1">
+                    {logs.map((log) => (
+                      <div key={log.id} className="flex items-start gap-2 rounded-md bg-muted p-2 text-xs">
+                        <span className={`shrink-0 rounded px-1 font-medium ${
+                          log.level === 'error' ? 'bg-destructive/10 text-destructive' :
+                          log.level === 'warning' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300' :
+                          'bg-muted-foreground/10 text-muted-foreground'
+                        }`}>{log.level}</span>
+                        <span className="text-muted-foreground">{new Date(log.created_at).toLocaleTimeString()}</span>
+                        <span className="break-words">{log.message}</span>
+                        {log.url && <span className="truncate text-muted-foreground/60">{log.url}</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{t('grabber.close')}</AlertDialogCancel>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
           <AlertDialogContent>
@@ -466,10 +600,58 @@ export default function GrabberPage() {
               onResume={handleResume}
               onEdit={(p) => { setEditProject(p); setFormOpen(true) }}
               onDelete={(id) => setDeleteConfirm(id)}
+              onViewDetails={handleOpenErrorDetails}
             />
           ))}
         </div>
       )}
+
+      <AlertDialog open={showErrorDetails} onOpenChange={setShowErrorDetails}>
+        <AlertDialogContent className="max-w-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('grabber.errorDetails')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('grabber.errorDetailsDesc')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="max-h-80 space-y-3 overflow-y-auto">
+            {errorDetailsProject?.error_message ? (
+              <div>
+                <p className="mb-1 text-sm font-medium text-foreground">{t('grabber.errorMessage')}</p>
+                <pre className="whitespace-pre-wrap rounded-md bg-destructive/10 p-3 text-sm text-destructive">{errorDetailsProject.error_message}</pre>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">{t('grabber.noErrorDetails')}</p>
+            )}
+            <div>
+              <p className="mb-1 text-sm font-medium text-foreground">{t('grabber.crawlLogs')}</p>
+              {logsLoading ? (
+                <p className="text-sm text-muted-foreground">{t('grabber.loadingLogs')}</p>
+              ) : logs.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{t('grabber.noLogs')}</p>
+              ) : (
+                <div className="space-y-1">
+                  {logs.map((log) => (
+                    <div key={log.id} className="flex items-start gap-2 rounded-md bg-muted p-2 text-xs">
+                      <span className={`shrink-0 rounded px-1 font-medium ${
+                        log.level === 'error' ? 'bg-destructive/10 text-destructive' :
+                        log.level === 'warning' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300' :
+                        'bg-muted-foreground/10 text-muted-foreground'
+                      }`}>{log.level}</span>
+                      <span className="text-muted-foreground">{new Date(log.created_at).toLocaleTimeString()}</span>
+                      <span className="break-words">{log.message}</span>
+                      {log.url && <span className="truncate text-muted-foreground/60">{log.url}</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('grabber.close')}</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <GrabberProjectForm
         open={formOpen}

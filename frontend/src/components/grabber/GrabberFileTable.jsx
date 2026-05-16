@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ArrowDown, ArrowUp, Download, Loader2, Search, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Download, Loader2, Search, Trash2 } from 'lucide-react'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -16,24 +16,22 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import GrabberFileTypeBadge from '@/components/grabber/GrabberFileTypeBadge'
 
-export default function GrabberFileTable({ files = [], loading, onDownload, onDownloadBulk, onDelete, onRefresh }) {
+export default function GrabberFileTable({
+  files = [], loading,
+  onDownload, onDownloadBulk, onDelete, onRefresh,
+  page = 1, pageSize = 50, totalFiles = 0, onPageChange,
+  search = '', onSearchChange,
+  typeFilter = 'all', onTypeFilterChange,
+  statusFilter = 'all', onStatusFilterChange,
+}) {
   const { t } = useTranslation()
-  const [search, setSearch] = useState('')
-  const [typeFilter, setTypeFilter] = useState('all')
-  const [statusFilter, setStatusFilter] = useState('all')
+  const totalPages = Math.max(1, Math.ceil(totalFiles / pageSize))
   const [selectedIds, setSelectedIds] = useState(new Set())
   const [sortField, setSortField] = useState('created_at')
   const [sortDir, setSortDir] = useState('desc')
 
-  const filtered = useMemo(() => {
-    let result = [...files]
-    if (search) {
-      const q = search.toLowerCase()
-      result = result.filter((f) => f.file_name?.toLowerCase().includes(q) || f.file_url?.toLowerCase().includes(q))
-    }
-    if (typeFilter !== 'all') result = result.filter((f) => f.file_type === typeFilter)
-    if (statusFilter !== 'all') result = result.filter((f) => f.status === statusFilter)
-
+  const sorted = useMemo(() => {
+    const result = [...files]
     result.sort((a, b) => {
       let va = a[sortField] || ''
       let vb = b[sortField] || ''
@@ -48,7 +46,7 @@ export default function GrabberFileTable({ files = [], loading, onDownload, onDo
       return sortDir === 'asc' ? cmp : -cmp
     })
     return result
-  }, [files, search, typeFilter, statusFilter, sortField, sortDir])
+  }, [files, sortField, sortDir])
 
   const toggleSort = (field) => {
     if (sortField === field) {
@@ -69,10 +67,10 @@ export default function GrabberFileTable({ files = [], loading, onDownload, onDo
   }
 
   const toggleSelectAll = () => {
-    if (selectedIds.size === filtered.length) {
+    if (selectedIds.size === sorted.length) {
       setSelectedIds(new Set())
     } else {
-      setSelectedIds(new Set(filtered.map((f) => f.id)))
+      setSelectedIds(new Set(sorted.map((f) => f.id)))
     }
   }
 
@@ -100,12 +98,12 @@ export default function GrabberFileTable({ files = [], loading, onDownload, onDo
           <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { onSearchChange?.(e.target.value); onPageChange?.(1) }}
             placeholder={t('grabber.searchFiles')}
             className="max-w-xs pl-8"
           />
         </div>
-        <Select value={typeFilter} onValueChange={setTypeFilter}>
+        <Select value={typeFilter} onValueChange={(v) => { onTypeFilterChange?.(v); onPageChange?.(1) }}>
           <SelectTrigger className="w-32">
             <SelectValue placeholder={t('grabber.allTypes')} />
           </SelectTrigger>
@@ -119,7 +117,7 @@ export default function GrabberFileTable({ files = [], loading, onDownload, onDo
             <SelectItem value="other">{t('grabber.other')}</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <Select value={statusFilter} onValueChange={(v) => { onStatusFilterChange?.(v); onPageChange?.(1) }}>
           <SelectTrigger className="w-36">
             <SelectValue placeholder={t('grabber.allStatuses')} />
           </SelectTrigger>
@@ -143,7 +141,7 @@ export default function GrabberFileTable({ files = [], loading, onDownload, onDo
         </Button>
       </div>
 
-      {filtered.length === 0 ? (
+      {sorted.length === 0 ? (
         <div className="flex flex-col items-center gap-2 py-12 text-center text-sm text-muted-foreground">
           <Search className="size-8" />
           <p>{t('grabber.noFilesFound')}</p>
@@ -155,7 +153,7 @@ export default function GrabberFileTable({ files = [], loading, onDownload, onDo
               <TableRow>
                 <TableHead className="w-10">
                   <Checkbox
-                    checked={selectedIds.size === filtered.length && filtered.length > 0}
+                    checked={selectedIds.size === sorted.length && sorted.length > 0}
                     onCheckedChange={toggleSelectAll}
                   />
                 </TableHead>
@@ -175,7 +173,7 @@ export default function GrabberFileTable({ files = [], loading, onDownload, onDo
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((file) => {
+              {sorted.map((file) => {
                 return (
                   <TableRow key={file.id}>
                     <TableCell>
@@ -230,9 +228,26 @@ export default function GrabberFileTable({ files = [], loading, onDownload, onDo
         </div>
       )}
 
-      <p className="text-xs text-muted-foreground">
-        {t('grabber.showingFiles', { count: filtered.length, total: files.length })}
-      </p>
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-muted-foreground">
+          {totalFiles > 0
+            ? t('grabber.showingFilesPage', { from: (page - 1) * pageSize + 1, to: Math.min(page * pageSize, totalFiles), total: totalFiles })
+            : t('grabber.showingFiles', { count: sorted.length, total: totalFiles })}
+        </p>
+        {totalPages > 1 && (
+          <div className="flex items-center gap-1">
+            <Button size="sm" variant="outline" className="size-8 p-0" disabled={page <= 1} onClick={() => onPageChange?.(page - 1)}>
+              <ChevronLeft className="size-4" />
+            </Button>
+            <span className="min-w-[4rem] text-center text-xs text-muted-foreground">
+              {page} / {totalPages}
+            </span>
+            <Button size="sm" variant="outline" className="size-8 p-0" disabled={page >= totalPages} onClick={() => onPageChange?.(page + 1)}>
+              <ChevronRight className="size-4" />
+            </Button>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

@@ -2,6 +2,22 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { DataTable } from '@/components/ui/data-table'
 
+vi.mock('@/components/ui/date-range-picker', () => ({
+  DateRangePicker: ({ dateRange, onDateRangeChange, onDateFieldChange, dateFields }) => (
+    <div data-testid="date-range-picker">
+      <button data-testid="set-range" onClick={() => onDateRangeChange({ from: new Date('2026-01-01'), to: new Date('2026-01-31') })}>
+        Set Range
+      </button>
+      <button data-testid="clear-range" onClick={() => onDateRangeChange({ from: undefined, to: undefined })}>
+        Clear Range
+      </button>
+      <button data-testid="change-field" onClick={() => onDateFieldChange('updated_at')}>
+        Change Field
+      </button>
+    </div>
+  ),
+}))
+
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key) => {
@@ -409,6 +425,156 @@ describe('DataTable', () => {
       expect(fetchData).toHaveBeenCalledWith(
         expect.objectContaining({ page: 1, status: 'pending' }),
       )
+    })
+  })
+
+  // ── Date filter integration ────────────────────────────────────────
+
+  it('renders date range picker when enableDateFilter is true', async () => {
+    const fetchData = makeFetch(() => mockResponse([], 0))
+    render(
+      <DataTable
+        columns={columns}
+        fetchData={fetchData}
+        pageSize={15}
+        enableDateFilter
+        dateFields={[{ value: 'created_at', label: 'Created' }]}
+      />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('date-range-picker')).toBeInTheDocument()
+    })
+  })
+
+  it('does not render date range picker when enableDateFilter is false', async () => {
+    const fetchData = makeFetch(() => mockResponse([], 0))
+    render(
+      <DataTable columns={columns} fetchData={fetchData} pageSize={15} />,
+    )
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('date-range-picker')).not.toBeInTheDocument()
+    })
+  })
+
+  it('passes date_from and date_to params when date range is selected', async () => {
+    const fetchData = makeFetch(() => mockResponse([], 0))
+    render(
+      <DataTable
+        columns={columns}
+        fetchData={fetchData}
+        pageSize={15}
+        enableDateFilter
+        dateFields={[{ value: 'created_at', label: 'Created' }]}
+      />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('date-range-picker')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByTestId('set-range'))
+
+    await waitFor(() => {
+      expect(fetchData).toHaveBeenCalledWith(
+        expect.objectContaining({
+          date_from: '2026-01-01',
+          date_to: '2026-01-31',
+          date_field: 'created_at',
+        }),
+      )
+    })
+  })
+
+  it('removes date params when date range is cleared', async () => {
+    const fetchData = makeFetch(() => mockResponse([], 0))
+    render(
+      <DataTable
+        columns={columns}
+        fetchData={fetchData}
+        pageSize={15}
+        enableDateFilter
+        dateFields={[{ value: 'created_at', label: 'Created' }]}
+      />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('date-range-picker')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByTestId('set-range'))
+
+    await waitFor(() => {
+      expect(fetchData).toHaveBeenCalledWith(
+        expect.objectContaining({ date_from: '2026-01-01' }),
+      )
+    })
+
+    fireEvent.click(screen.getByTestId('clear-range'))
+
+    await waitFor(() => {
+      const calls = fetchData.mock.calls
+      const lastCall = calls[calls.length - 1][0]
+      expect(lastCall.date_from).toBeUndefined()
+      expect(lastCall.date_to).toBeUndefined()
+    })
+  })
+
+  it('passes date_field param when field is changed while a range is active', async () => {
+    const fetchData = makeFetch(() => mockResponse([], 0))
+    render(
+      <DataTable
+        columns={columns}
+        fetchData={fetchData}
+        pageSize={15}
+        enableDateFilter
+        dateFields={[
+          { value: 'created_at', label: 'Created' },
+          { value: 'updated_at', label: 'Updated' },
+        ]}
+      />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('date-range-picker')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByTestId('set-range'))
+
+    await waitFor(() => {
+      expect(fetchData).toHaveBeenCalledWith(
+        expect.objectContaining({ date_from: '2026-01-01', date_field: 'created_at' }),
+      )
+    })
+
+    fireEvent.click(screen.getByTestId('change-field'))
+
+    await waitFor(() => {
+      expect(fetchData).toHaveBeenCalledWith(
+        expect.objectContaining({ date_field: 'updated_at' }),
+      )
+    })
+  })
+
+  it('does not pass date params when no date range is selected', async () => {
+    const fetchData = makeFetch(() => mockResponse([], 0))
+    render(
+      <DataTable
+        columns={columns}
+        fetchData={fetchData}
+        pageSize={15}
+        enableDateFilter
+        dateFields={[{ value: 'created_at', label: 'Created' }]}
+      />,
+    )
+
+    await waitFor(() => {
+      const calls = fetchData.mock.calls
+      const lastCall = calls[calls.length - 1][0]
+      expect(lastCall.date_from).toBeUndefined()
+      expect(lastCall.date_to).toBeUndefined()
+      expect(lastCall.date_field).toBeUndefined()
     })
   })
 })

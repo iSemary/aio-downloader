@@ -1,6 +1,6 @@
 # AIO Downloader
 
-Self-hosted files downloader: paste a URL, download with **yt-dlp** + **FFmpeg** for videos, track progress over **WebSocket**, manage files, and optionally push to **Telegram**.
+Self-hosted files downloader: paste a URL, download with **yt-dlp** + **FFmpeg** for videos, track progress over **WebSocket**, manage files, and optionally push to **Telegram** and **Google Drive**.
 
 | Area | Stack |
 | --- | --- |

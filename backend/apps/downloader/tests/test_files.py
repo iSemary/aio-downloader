@@ -318,3 +318,63 @@ class JobEventViewSetTests(TestCase):
         self.assertEqual(res.data["message"], "50% complete")
         self.assertIn("job", res.data)
         self.assertEqual(res.data["job"]["title"], "Test Job")
+
+
+class DownloadedFileDateFilterTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="filedate@test.example",
+            email="filedate@test.example",
+            password="secret12345",
+        )
+        self.client = APIClient()
+        self.client.force_authenticate(self.user)
+
+    def _make_file(self, **kw):
+        job_defaults = dict(
+            user=self.user,
+            source_url="https://example.com/v.mp4",
+            title="Video",
+            platform="http",
+            status=DownloadJob.Status.DONE,
+        )
+        job_defaults.update({k: kw.pop(k) for k in list(kw) if k.startswith("job_")})
+        job = DownloadJob.objects.create(**{k.removeprefix("job_"): v for k, v in list(job_defaults.items())})
+        defaults = dict(
+            user=self.user,
+            job=job,
+            file_path="http/v.mp4",
+            file_size_bytes=1024,
+        )
+        defaults.update(kw)
+        return DownloadedFile.objects.create(**defaults)
+
+    def test_filter_files_by_date_from(self):
+        now = timezone.now()
+        old = now - timedelta(days=5)
+        self._make_file(file_path="http/old.mp4")
+        DownloadedFile.objects.filter(file_path="http/old.mp4").update(created_at=old)
+        self._make_file(file_path="http/new.mp4")
+
+        res = self.client.get(
+            "/api/downloads/files/?date_from=" + (now - timedelta(days=1)).strftime("%Y-%m-%d")
+        )
+        self.assertEqual(res.status_code, 200)
+        paths = [f["file_path"] for f in res.data["results"]]
+        self.assertIn("http/new.mp4", paths)
+        self.assertNotIn("http/old.mp4", paths)
+
+    def test_filter_files_by_date_to(self):
+        now = timezone.now()
+        old = now - timedelta(days=5)
+        self._make_file(file_path="http/old.mp4")
+        DownloadedFile.objects.filter(file_path="http/old.mp4").update(created_at=old)
+        self._make_file(file_path="http/new.mp4")
+
+        res = self.client.get(
+            "/api/downloads/files/?date_to=" + (now - timedelta(days=1)).strftime("%Y-%m-%d")
+        )
+        self.assertEqual(res.status_code, 200)
+        paths = [f["file_path"] for f in res.data["results"]]
+        self.assertIn("http/old.mp4", paths)
+        self.assertNotIn("http/new.mp4", paths)

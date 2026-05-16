@@ -9,12 +9,13 @@ from rest_framework.views import APIView
 from apps.downloader.tasks import enqueue_download
 
 from .filters import FilterEngine
-from .models import GrabberCrawlTask, GrabberDiscoveredFile, GrabberFilter, GrabberProject, SiteAccount
+from .models import GrabberCrawlTask, GrabberDiscoveredFile, GrabberFilter, GrabberLog, GrabberProject, SiteAccount
 from .serializers import (
     FileDownloadSerializer,
     GrabberCrawlTaskSerializer,
     GrabberDiscoveredFileSerializer,
     GrabberFilterSerializer,
+    GrabberLogSerializer,
     GrabberProjectDetailSerializer,
     GrabberProjectListSerializer,
     SiteAccountSerializer,
@@ -92,6 +93,13 @@ class GrabberProjectViewSet(viewsets.ModelViewSet):
         project.save(update_fields=["status"])
         crawl_project_task.delay(str(project.id))
         return Response({"detail": "Crawl resumed.", "status": project.status})
+
+    @action(detail=True, methods=["get"])
+    def logs(self, request, pk=None):
+        project = self.get_object()
+        log_qs = project.logs.all()[:50]
+        serializer = GrabberLogSerializer(log_qs, many=True)
+        return Response(serializer.data)
 
     @action(detail=True, methods=["get"])
     def stats(self, request, pk=None):

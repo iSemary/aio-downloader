@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { CircleCheck, CircleX, Globe, Pause, Play, Square } from 'lucide-react'
+import { AlertCircle, CircleCheck, CircleX, Globe, Pause, Play, Square } from 'lucide-react'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -13,7 +13,7 @@ const statusIcons = {
   error: CircleX,
 }
 
-export default function GrabberProjectCard({ project, onStart, onStop, onPause, onResume, onEdit, onDelete, onClick }) {
+export default function GrabberProjectCard({ project, onStart, onStop, onPause, onResume, onEdit, onDelete, onClick, onViewDetails }) {
   const { t } = useTranslation()
   const Icon = statusIcons[project.status] || Globe
   const isActive = project.status === 'crawling'
@@ -76,10 +76,20 @@ export default function GrabberProjectCard({ project, onStart, onStop, onPause, 
                 </Button>
               </>
             )}
-            {(project.status === 'done' || project.status === 'error') && (
+            {project.status === 'done' && (
               <Button size="sm" variant="default" onClick={(e) => { e.stopPropagation(); onStart?.(project.id) }}>
                 <Play className="mr-1 size-3.5" /> {t('grabber.restart')}
               </Button>
+            )}
+            {project.status === 'error' && (
+              <>
+                <Button size="sm" variant="destructive" onClick={(e) => { e.stopPropagation(); onStart?.(project.id) }}>
+                  <Play className="mr-1 size-3.5" /> {t('grabber.retry')}
+                </Button>
+                <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); onViewDetails?.(project) }}>
+                  <AlertCircle className="mr-1 size-3.5" /> {t('grabber.details')}
+                </Button>
+              </>
             )}
             <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); onEdit?.(project) }}>
               {t('grabber.edit')}

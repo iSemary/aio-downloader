@@ -2,7 +2,7 @@ from rest_framework import serializers
 
 from apps.downloader.models import DownloadJob
 
-from .models import GrabberCrawlTask, GrabberDiscoveredFile, GrabberFilter, GrabberProject, SiteAccount
+from .models import GrabberCrawlTask, GrabberDiscoveredFile, GrabberFilter, GrabberLog, GrabberProject, SiteAccount
 
 
 class GrabberFilterSerializer(serializers.ModelSerializer):
@@ -101,6 +101,7 @@ class GrabberProjectListSerializer(serializers.ModelSerializer):
             "completed_at",
             "created_at",
             "updated_at",
+            "error_message",
             "filters",
             "active_task_count",
         )
@@ -115,6 +116,7 @@ class GrabberProjectListSerializer(serializers.ModelSerializer):
             "completed_at",
             "created_at",
             "updated_at",
+            "error_message",
             "active_task_count",
         )
 
@@ -154,6 +156,7 @@ class GrabberProjectDetailSerializer(serializers.ModelSerializer):
             "completed_at",
             "created_at",
             "updated_at",
+            "error_message",
             "filters",
             "crawl_tasks_count",
             "discovered_files_count",
@@ -170,6 +173,7 @@ class GrabberProjectDetailSerializer(serializers.ModelSerializer):
             "completed_at",
             "created_at",
             "updated_at",
+            "error_message",
             "crawl_tasks_count",
             "discovered_files_count",
         )
@@ -192,6 +196,12 @@ class GrabberDuplicateResolutionSerializer(serializers.Serializer):
 
 class FileDownloadSerializer(serializers.Serializer):
     file_ids = serializers.ListField(child=serializers.UUIDField(), min_length=1, max_length=100)
+
+
+class GrabberLogSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GrabberLog
+        fields = ("id", "level", "message", "url", "created_at")
 
 
 class SiteAccountSerializer(serializers.ModelSerializer):

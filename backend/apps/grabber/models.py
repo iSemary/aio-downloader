@@ -55,6 +55,7 @@ class GrabberProject(models.Model):
         blank=True,
         help_text="Stored as {\"type\": \"cookie|form\", \"cookies\": {...}, \"login_url\": \"...\", \"username\": \"...\", \"password_encrypted\": \"...\"}",
     )
+    error_message = models.TextField(blank=True, default="")
     schedule_cron = models.CharField(
         max_length=128,
         blank=True,
@@ -317,3 +318,31 @@ class SiteAccount(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.site_url})"
+
+
+class GrabberLog(models.Model):
+    class Level(models.TextChoices):
+        INFO = "info", "Info"
+        WARNING = "warning", "Warning"
+        ERROR = "error", "Error"
+        DEBUG = "debug", "Debug"
+
+    project = models.ForeignKey(
+        GrabberProject,
+        on_delete=models.CASCADE,
+        related_name="logs",
+    )
+    level = models.CharField(max_length=10, choices=Level.choices, default=Level.INFO)
+    message = models.TextField()
+    url = models.URLField(max_length=2048, blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        indexes = [
+            models.Index(fields=("project", "level")),
+            models.Index(fields=("project", "-created_at")),
+        ]
+
+    def __str__(self):
+        return f"[{self.level}] {self.message[:80]}"

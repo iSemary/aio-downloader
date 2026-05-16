@@ -68,12 +68,14 @@ export const automationItems = [
   { to: '/sites', key: 'sites', icon: Globe },
 ]
 
-export const navItems = [
+export const topItems = [
   { to: '/dashboard', key: 'dashboard', icon: LayoutDashboard },
   { to: '/queue', key: 'queue', icon: ListOrdered },
+]
+
+export const navItems = [
   { to: '/bulk-add', key: 'bulkAdd', icon: ListPlus },
   { to: '/analyze', key: 'analyze', icon: ScanSearch },
-  { to: '/playlists', key: 'playlists', icon: Library },
   { to: '/history', key: 'history', icon: History },
   { to: '/storage', key: 'storage', icon: HardDrive },
   { to: '/settings', key: 'settings', icon: Settings },
@@ -110,6 +112,24 @@ export function AppSidebar({ side = 'left', ...props }) {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
+          <SidebarGroupLabel>{t('layout.groupMain')}</SidebarGroupLabel>
+           <SidebarMenu>
+             {topItems.map(({ to, key, icon: Icon }) => (
+               <SidebarMenuItem key={to}>
+                 <SidebarMenuButton asChild tooltip={t(`layout.nav.${key}`)} isActive={location.pathname === to}>
+                   <Link to={to}>
+                     <Icon />
+                     <span>{t(`layout.nav.${key}`)}</span>
+                   </Link>
+                 </SidebarMenuButton>
+               </SidebarMenuItem>
+             ))}
+           </SidebarMenu>
+        </SidebarGroup>
+
+        <SidebarSeparator />
+
+        <SidebarGroup className="pb-0">
           <SidebarGroupLabel>{t('layout.groupDownloads')}</SidebarGroupLabel>
            <SidebarMenu>
              {downloadItems.map(({ to, key, icon: Icon }) => (
@@ -123,6 +143,19 @@ export function AppSidebar({ side = 'left', ...props }) {
                </SidebarMenuItem>
              ))}
            </SidebarMenu>
+        </SidebarGroup>
+
+        <SidebarGroup className="pt-0">
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip={t('layout.nav.playlists')} isActive={location.pathname === '/playlists'}>
+                <Link to="/playlists">
+                  <Library />
+                  <span>{t('layout.nav.playlists')}</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
         </SidebarGroup>
 
         <SidebarSeparator />
@@ -164,7 +197,6 @@ export function AppSidebar({ side = 'left', ...props }) {
         <SidebarSeparator />
 
         <SidebarGroup>
-          <SidebarGroupLabel>{t('layout.groupMain')}</SidebarGroupLabel>
           <SidebarMenu>
             {navItems.map(({ to, key, icon: Icon }) => (
               <SidebarMenuItem key={to}>

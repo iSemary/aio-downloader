@@ -560,12 +560,11 @@ class DownloadJobViewSetTests(TestCase):
 
     def test_filter_by_date_from(self):
         self._make_job(title="Old")
-        later = timezone.now() + timedelta(hours=1)
+        DownloadJob.objects.filter(title="Old").update(created_at=timezone.now() - timedelta(days=5))
         self._make_job(title="New")
-        DownloadJob.objects.filter(title="New").update(created_at=later)
 
         res = self.client.get(
-            "/api/downloads/?date_from=" + (timezone.now() + timedelta(minutes=30)).strftime("%Y-%m-%d")
+            "/api/downloads/?date_from=" + (timezone.now() - timedelta(days=1)).strftime("%Y-%m-%d")
         )
         self.assertEqual(res.status_code, 200)
         titles = [j["title"] for j in res.data["results"]]
@@ -573,7 +572,7 @@ class DownloadJobViewSetTests(TestCase):
         self.assertNotIn("Old", titles)
 
     def test_filter_by_date_to(self):
-        early = timezone.now() - timedelta(days=2)
+        early = timezone.now() - timedelta(days=5)
         self._make_job(title="Early")
         DownloadJob.objects.filter(title="Early").update(created_at=early)
         self._make_job(title="Recent")

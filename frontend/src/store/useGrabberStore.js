@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { api } from '@/api/client'
 
-export const useGrabberStore = create((set, get) => ({
+export const useGrabberStore = create((set) => ({
   projects: [],
   currentProject: null,
   files: [],
@@ -124,5 +124,10 @@ export const useGrabberStore = create((set, get) => ({
   deleteFile: async (projectId, fileId) => {
     await api.delete(`/grabber/projects/${projectId}/files/${fileId}/`)
     set((s) => ({ files: s.files.filter((f) => f.id !== fileId) }))
+  },
+
+  fetchLogs: async (projectId) => {
+    const { data } = await api.get(`/grabber/projects/${projectId}/logs/`)
+    return data
   },
 }))

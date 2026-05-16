@@ -36,6 +36,7 @@ export default function App() {
           <Route path="/bulk-add" element={<BulkAddPage />} />
           <Route path="/analyze" element={<AnalyzePage />} />
           <Route path="/grabber" element={<GrabberPage />} />
+          <Route path="/grabber/:projectId" element={<GrabberPage />} />
           <Route path="/sites" element={<SitesManagerPage />} />
           <Route path="/playlists" element={<PlaylistsPage />} />
           <Route path="/jobs/:id" element={<JobDetailPage />} />

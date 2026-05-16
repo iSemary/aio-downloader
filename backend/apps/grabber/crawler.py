@@ -11,6 +11,7 @@ import httpx
 from bs4 import BeautifulSoup
 
 from .filters import ALL_EXTENSIONS, classify_file_extension
+from .log_utils import log_async
 
 logger = logging.getLogger(__name__)
 
@@ -147,6 +148,7 @@ class Crawler:
         filter_engine=None,
     ):
         self.project = project
+        self.project_id = str(project.id)
         self.semaphore = semaphore
         self.client = client
         self.filter_engine = filter_engine
@@ -180,6 +182,7 @@ class Crawler:
                 return [], []
             except Exception as e:
                 logger.warning("Failed to crawl %s: %s", url, e)
+                await log_async(self.project_id, "error", f"Failed to crawl: {e}", url)
                 return [], []
 
         content_type = resp.headers.get("content-type", "").lower()
@@ -251,6 +254,7 @@ class PlaywrightCrawler(Crawler):
                     final_url = page.url
                 except Exception as e:
                     logger.warning("Playwright crawl failed for %s: %s", url, e)
+                    await log_async(self.project_id, "error", f"Playwright crawl failed: {e}", url)
                     return [], []
                 finally:
                     await browser.close()
@@ -325,6 +329,7 @@ async def run_crawl(project, filter_engine, progress_callback=None):
             for result in results:
                 if isinstance(result, Exception):
                     logger.error("Crawl error: %s", result)
+                    await log_async(str(project.id), "error", f"Crawl error: {result}")
                     continue
                 child_tasks, files = result
                 for child in child_tasks:

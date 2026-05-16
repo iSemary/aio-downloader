@@ -201,7 +201,7 @@ export default function SettingsPage() {
           </div>
         </CardHeader>
         <CardContent className="pt-6">
-          <form className="grid gap-6" onSubmit={saveTelegram}>
+          <form className="grid gap-6" autoComplete="off" onSubmit={saveTelegram}>
             {!isOwner && (
               <p className="text-sm text-muted-foreground">{t('settings.telegramBotTokenOwnerHint')}</p>
             )}
@@ -216,7 +216,7 @@ export default function SettingsPage() {
                     id="bot_token"
                     className="min-h-11 font-mono text-sm"
                     type="password"
-                    autoComplete="off"
+                    autoComplete="one-time-code"
                     placeholder={t('settings.telegramBotTokenPlaceholder')}
                     value={tg.bot_token}
                     onChange={(e) => setTg({ ...tg, bot_token: e.target.value })}
@@ -225,10 +225,10 @@ export default function SettingsPage() {
               ) : null}
               <div className="grid gap-2">
                 <Label htmlFor="chat_id">{t('settings.telegramChatId')}</Label>
-                <Input
-                  id="chat_id"
-                  className="min-h-11 font-mono text-sm"
-                  autoComplete="off"
+                  <Input
+                    id="chat_id"
+                    className="min-h-11 font-mono text-sm"
+                    autoComplete="one-time-code"
                   placeholder={t('settings.telegramChatIdPlaceholder')}
                   value={tg.chat_id}
                   onChange={(e) => setTg({ ...tg, chat_id: e.target.value })}

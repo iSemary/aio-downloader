@@ -2,7 +2,7 @@ import asyncio
 import logging
 from datetime import datetime
 
-from asgiref.sync import async_to_sync
+from asgiref.sync import async_to_sync, sync_to_async
 from celery import shared_task
 from channels.layers import get_channel_layer
 from django.db import transaction
@@ -14,6 +14,7 @@ from apps.downloader.tasks import enqueue_download
 
 from .crawler import run_crawl
 from .filters import FilterEngine, classify_file_extension
+from .log_utils import log
 from .models import GrabberCrawlTask, GrabberDiscoveredFile, GrabberProject
 
 logger = logging.getLogger(__name__)
@@ -47,31 +48,58 @@ def crawl_project_task(self, project_id: str):
     project.files_discovered = 0
     project.save(update_fields=["status", "started_at", "pages_crawled", "files_discovered"])
 
+    log(project_id, "info", "Crawl started")
     send_ws_event(project_id, "crawl_started", {"project_id": project_id})
 
     filter_engine = FilterEngine(project)
 
     async def progress_callback(child_count, file_count, pages_done, files_done):
-        GrabberProject.objects.filter(id=project_id).update(
+        from asgiref.sync import sync_to_async
+
+        await sync_to_async(GrabberProject.objects.filter(id=project_id).update)(
             pages_crawled=pages_done + 1,
             files_discovered=files_done + file_count,
         )
-        send_ws_event(project_id, "crawl_progress", {
-            "project_id": project_id,
-            "pages_crawled": pages_done + 1,
-            "files_discovered": file_count,
-            "pending_tasks": child_count,
-        })
+        try:
+            channel_layer = get_channel_layer()
+            if channel_layer:
+                await channel_layer.group_send(
+                    f"grabber_{project_id}",
+                    {
+                        "type": "grabber.event",
+                        "event": "crawl_progress",
+                        "data": {
+                            "project_id": project_id,
+                            "pages_crawled": pages_done + 1,
+                            "files_discovered": file_count,
+                            "pending_tasks": child_count,
+                        },
+                    },
+                )
+        except Exception:
+            pass
 
-    try:
+    def sync_crawl():
+        agen = run_crawl(project, filter_engine, progress_callback)
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
+        try:
+            while True:
+                try:
+                    yield loop.run_until_complete(agen.__anext__())
+                except StopAsyncIteration:
+                    break
+        finally:
+            loop.close()
+
+    try:
         file_counter = 0
 
-        for file_info in run_crawl(project, filter_engine, progress_callback):
+        for file_info in sync_crawl():
             discovered_file = _process_discovered_file(project, file_info)
             if discovered_file:
                 file_counter += 1
+            log(project_id, "info", f"Discovered: {file_info.get('file_name', '')} ({file_info.get('file_type', 'other')})", file_info.get("url", ""))
             send_ws_event(project_id, "file_discovered", {
                 "project_id": project_id,
                 "file_id": str(discovered_file.id) if discovered_file else None,
@@ -84,6 +112,7 @@ def crawl_project_task(self, project_id: str):
         project.status = GrabberProject.Status.DONE
         project.completed_at = timezone.now()
         project.save(update_fields=["status", "completed_at"])
+        log(project_id, "info", f"Crawl completed — {project.pages_crawled} pages, {project.files_discovered} files")
         send_ws_event(project_id, "crawl_completed", {
             "project_id": project_id,
             "pages_crawled": project.pages_crawled,
@@ -94,7 +123,9 @@ def crawl_project_task(self, project_id: str):
         logger.exception("Crawl failed for project %s", project_id)
         project.refresh_from_db()
         project.status = GrabberProject.Status.ERROR
-        project.save(update_fields=["status"])
+        project.error_message = str(e)
+        project.save(update_fields=["status", "error_message"])
+        log(project_id, "error", f"Crawl failed: {e}")
         send_ws_event(project_id, "crawl_error", {
             "project_id": project_id,
             "error": str(e),
@@ -197,7 +228,10 @@ def cleanup_stale_crawls():
         status=GrabberProject.Status.CRAWLING,
         started_at__lt=threshold,
     )
-    count = stale.update(status=GrabberProject.Status.ERROR)
+    count = stale.update(
+        status=GrabberProject.Status.ERROR,
+        error_message="Crawl was stuck for more than 6 hours and was automatically cancelled.",
+    )
     if count:
         logger.info("Marked %s stale crawl projects as error", count)
 
