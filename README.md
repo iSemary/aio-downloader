@@ -11,81 +11,43 @@ Self-hosted files downloader: paste a URL, download with **yt-dlp** + **FFmpeg**
 
 More detail: **[backend/README.md](backend/README.md)** · **[frontend/README.md](frontend/README.md)**
 
-## Features (vs product plan)
+## Features
 
-- Auth: register, login, refresh, me, password change, logout (token blacklist)
-- Downloads: start job, list/cancel/retry, playlist → child jobs, yt-dlp wrapper + Celery task + WS progress
-- Dashboard: stats, charts, active queue, recent rows, storage breakdown
-- History & storage: paginated history, file list tied to your jobs, delete + Telegram push
-- Integrations: encrypted Telegram config, test, auto-send after download, 50 MB guard
-- Tooling: Postman collection, `seed_test_user`, root `.gitignore`
+- **Universal URL Downloads** — Paste a link from YouTube, TikTok, Instagram, Twitter/X, Facebook, and hundreds more. Dual engines: yt-dlp (video/audio/playlists) + native HTTP (direct files, resume, SSRF protection).
+- **Format & Quality Selection** — MP4, MP3, WebM; presets from Best down to Audio Only.
+- **Playlist Support** — Auto-detection, hierarchical parent/child jobs, per-item tracking.
+- **Download Queue** — Priority ordering, pause/resume (HTTP), retry, cancel, drag-and-drop reorder, bulk URL submission (up to 50), scheduling.
+- **Real-Time Progress** — WebSocket streaming per job: percentage, speed, ETA, bytes, events (created → done/error).
+- **Dashboard & Analytics** — Active/queue/health widgets, charts powered by Recharts: 12-month activity heatmap, platform donut, speed histogram, storage breakdown.
+- **Download History** — Paginated, filterable by status/category/date, with job detail side sheet, Telegram push, retry, export to Excel.
+- **File Storage Manager** — Browse all files, total/category breakdown, deletion from disk with security checks.
+- **Auto-Retention** — Per-user auto-delete after N days via Celery periodic task.
+- **Telegram Integration** — Bot token management (encrypted), per-user config, auto-send on complete, failure alerts, manual push, connection test, Local Bot API support.
+- **Google Drive Integration** — OAuth 2.0 flow, encrypted tokens, auto-upload, per-job upload, folder selection, connection test.
+- **Site Crawler / Grabber** — Crawl websites to discover media/docs/archives; configurable depth, concurrency, JS rendering (Playwright), robots.txt respect, include/exclude filters (URL/extension/size/domain/keyword), cron-based re-crawls, duplicate detection (SHA256), bulk queue discovered files.
+- **Authenticated Crawling** — Site Accounts with cookie injection, header auth, basic auth, form-based login; credentials encrypted at rest.
+- **URL Analysis Tool** — Probe any URL before downloading to see platform, media type, available formats, playlist detection.
+- **User Management** — Email-based auth, JWT (access + refresh + blacklist), roles (Owner/Admin), registration, profile, password change.
+- **User Preferences** — Default format/quality/engine, retention days, Telegram/Drive toggles, timezone, notification preferences.
+- **Multi-Language** — English, Arabic (RTL), German.
+- **Dark/Light/System Theme** — Toggle in header.
+- **REST API** — Django 6 + DRF under `/api/` with full JWT auth, CORS, rate limiting.
+- **Security** — SSRF protection, path traversal prevention, Fernet encryption for tokens, JWT blacklist.
 
-**Small gaps vs the written plan (optional follow-ups):** no bulk-delete on the Storage UI (only per-row delete); no dedicated “file info” dialog on History; Celery does not auto-retry failed downloads with exponential backoff; production DB is configured with `MYSQL_*` variables rather than a single `DATABASE_URL`; navigation lives in `AppLayout.jsx` instead of separate `Navbar.jsx` / `Sidebar.jsx` files.
+## Figma Snapshots
+
+For a visual preview of the project, check out my Figma designs:
+[Open With Figma](https://www.figma.com/design/lqoxCKrZ7CUJAcNKfbs2fN/AIO-Downloader?node-id=1-4&t=GWkxgkhJVgtUwf4X-1)
+
+<img alt="snapshot" src="https://i.ibb.co/zd7x7cV/Screenshot-From-2026-05-16-23-32-34.png" />
+
 
 ## Test credentials (local development)
-
-```bash
-cd backend && source venv/bin/activate
-python manage.py seed_test_user
-```
 
 | Field | Value |
 | --- | --- |
 | **Email** | `test@example.com` |
 | **Password** | `testpassword123` |
-
-If the user already exists: `python manage.py seed_test_user --force`. Override defaults with `TEST_USER_EMAIL` and `TEST_USER_PASSWORD` (see `backend/.env.example`).
-
-Then open **http://localhost:5173** and sign in on the Login page.
-
-## Prerequisites
-
-- Python 3.11+
-- Node 20+
-- **Redis** (recommended). If Redis is unavailable, set `USE_INMEMORY_CHANNELS=1` in `backend/.env` (in-process channel layer; progress from Celery will not reach the browser across processes).
-- **FFmpeg** (for merges and audio extraction)
-- **MySQL** when using `config.settings.production`; **SQLite** for default development settings
-
-## Quick start
-
-**1. Backend** (from repo root)
-
-```bash
-cd backend
-python -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env   # set DJANGO_SECRET_KEY, REDIS_URL, ENCRYPTION_KEY as needed
-
-python manage.py migrate
-python manage.py seed_test_user
-```
-
-**2. Run API + WebSockets** (Channels expects ASGI)
-
-```bash
-DJANGO_SETTINGS_MODULE=config.settings.development daphne -b 0.0.0.0 -p 8000 config.asgi:application
-```
-
-**3. Celery worker** (second terminal)
-
-```bash
-cd backend && source venv/bin/activate
-celery -A config worker --loglevel=info
-```
-
-**4. Frontend** (third terminal)
-
-```bash
-cd frontend
-npm install && cp .env.example .env
-npm run dev
-```
-
-- App: **http://localhost:5173**
-- API: **http://localhost:8000/api/**
-- WebSocket: `ws://localhost:8000/ws/downloads/<job_id>/?token=<access_jwt>`
-
-Production: set `DJANGO_SETTINGS_MODULE=config.settings.production` and MySQL-related variables from `backend/.env.example`.
 
 ## Postman
 
@@ -94,7 +56,7 @@ Import [postman/collection.json](postman/collection.json) and [postman/environme
 ## Repository layout
 
 ```
-backend/          Django project (apps/, config/, storage/, requirements.txt)
+backend/          Django project
 frontend/         Vite + React SPA
 postman/          API collection + environment
 ```

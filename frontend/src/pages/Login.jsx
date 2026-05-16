@@ -40,7 +40,7 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-svh items-center justify-center bg-muted/30 p-4 py-8">
-      <Card className="w-full max-w-md overflow-hidden border-border/80 shadow-sm sm:border-l-4 sm:border-l-primary">
+      <Card className="w-full max-w-md overflow-hidden border-border/80 shadow-sm">
         <CardHeader className="space-y-4 border-b bg-muted/30 pb-6">
           <div className="flex items-start gap-3">
             <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary ring-1 ring-primary/20">

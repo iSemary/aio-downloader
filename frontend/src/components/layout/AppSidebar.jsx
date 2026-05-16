@@ -24,6 +24,7 @@ import {
   Webcam,
 } from 'lucide-react'
 import { LogoMark } from '@/components/layout/LogoMark'
+import { AppLogo } from '@/components/ui/AppLogo'
 import { useAuthStore } from '@/store/useAuthStore'
 import {
   DropdownMenu,
@@ -99,11 +100,10 @@ export function AppSidebar({ side = 'left', ...props }) {
             <SidebarMenuButton size="lg" asChild>
               <Link to="/dashboard">
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                  <Download className="size-4" aria-hidden />
+                  <AppLogo className="size-5" />
                 </div>
-                <div className="grid min-w-0 flex-1 text-start text-sm leading-tight">
+                <div className="flex min-w-0 flex-1 items-center text-start text-sm leading-tight">
                   <span className="truncate font-medium">{t('layout.appName')}</span>
-                  <span className="truncate text-xs text-muted-foreground">{t('layout.tagline')}</span>
                 </div>
               </Link>
             </SidebarMenuButton>

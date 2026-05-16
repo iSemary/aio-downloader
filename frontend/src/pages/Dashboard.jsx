@@ -47,6 +47,7 @@ import { Download as DownloadIcon, FileSpreadsheet } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -150,7 +151,7 @@ function ContributionHeatmap({ heatmap, t }) {
 
   return (
     <TooltipProvider delayDuration={100}>
-      <div className="flex max-w-full gap-0.5 overflow-x-auto pb-1">
+      <div className="flex w-full justify-between gap-px overflow-x-auto pb-1">
         {columns.map((week, wi) => (
           <div key={wi} className="flex flex-col gap-0.5">
             {week.map((cell) => {
@@ -1110,12 +1111,26 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-4 lg:grid-cols-3 items-start">
         <Card
           className="lg:col-span-2 cursor-pointer transition-all hover:ring-2 hover:ring-primary/20"
           onClick={() => navigate('/history')}
         >
           <CardHeader>
+            <CardAction>
+              <Button
+                variant="outline"
+                size="xs"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  exportHeatmapToExcel();
+                }}
+                className="gap-1"
+              >
+                <FileSpreadsheet className="size-3.5" />
+                <span className="hidden sm:inline text-xs">Export</span>
+              </Button>
+            </CardAction>
             <div className="flex items-start gap-3">
               <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted">
                 <Clock className="size-5 text-muted-foreground" aria-hidden />
@@ -1127,18 +1142,6 @@ export default function DashboardPage() {
                 </CardDescription>
               </div>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                exportHeatmapToExcel();
-              }}
-              className="gap-2"
-            >
-              <FileSpreadsheet className="size-4" />
-              <span className="hidden sm:inline">Export Excel</span>
-            </Button>
           </CardHeader>
           <CardContent>
             <ContributionHeatmap heatmap={heatmap} t={t} />
