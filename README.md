@@ -1,6 +1,6 @@
 # AIO Downloader
 
-Self-hosted files downloader: paste a URL, download with **yt-dlp** + **FFmpeg** for videos, track progress over **WebSocket**, manage files, and optionally push to **Telegram** and **Google Drive**.
+Self-hosted all-in-one download manager. Paste any URL — video, audio, document, or archive — and AIO Downloader handles the rest. Powered by **yt-dlp** + **FFmpeg** and a native HTTP engine, with real-time progress via **WebSocket**, a full-featured dashboard, file management, playlist support, a site crawler, and optional integrations with **Telegram** and **Google Drive**.
 
 | Area | Stack |
 | --- | --- |
